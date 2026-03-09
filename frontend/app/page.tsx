@@ -1,93 +1,92 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearch } from '@/contexts/SearchContext';
+import { songService } from '@/services/songService';
+import { AlbumCard } from '@/components/AlbumCard';
 import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
+import { favoriteService } from '@/services/favoriteService';
 
-export default function LoginPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.replace('/home');
-      }
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-musify-accent">Loading...</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-4xl font-bold text-center text-musify-accent mb-8">Musify</h1>
-        <LoginForm />
-        <p className="text-center text-white/60 mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-musify-accent hover:underline">
-            Register
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
-function LoginForm() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function HomePage() {
+  const { user } = useAuth();
+  const { searchQuery } = useSearch();
+  const [songs, setSongs] = useState<unknown[]>([]);
+  const [trending, setTrending] = useState<unknown[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await login(email, password);
-      window.location.href = '/home';
-    } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    songService.getAll({ search: searchQuery || undefined }).then(({ data }) => setSongs(data));
+    songService.getTrending(10).then(({ data }) => setTrending(data));
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (user) {
+      favoriteService.getAll().then(({ data }) => {
+        const ids = new Set((data as { _id?: string }[]).map((s) => s._id).filter(Boolean));
+        setFavorites(ids as Set<string>);
+      });
     }
-  };
+  }, [user]);
+
+  const trendingSongs = (trending as { _id: string; title: string; artist: string; coverImage?: string; audioUrl: string; duration: number }[]).filter(
+    (s) => !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.artist.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const madeForYouSongs = (songs as { _id: string; title: string; artist: string; coverImage?: string; audioUrl: string; duration: number }[]).filter(
+    (s) => !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.artist.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 rounded-lg bg-musify-accent hover:bg-musify-accent-hover text-black font-semibold transition disabled:opacity-50"
-      >
-        {loading ? 'Logging in...' : 'Login'}
-      </button>
-    </form>
+    <div className="px-6 py-8 bg-gradient-to-b from-musify-teal/10 via-musify-purple/5 to-musify-dark min-h-full">
+      <h1 className="text-3xl font-bold text-white mb-8">{getGreeting()}</h1>
+
+      <section className="mb-10">
+        <div className="flex overflow-x-auto gap-4 pb-4 -mx-2 scrollbar-hide">
+          {trendingSongs.slice(0, 6).map((song) => (
+            <div key={song._id} className="flex-shrink-0 w-40">
+              <AlbumCard song={song} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Made for you</h2>
+            <p className="text-white/60 text-sm mt-1">Catch up on the latest releases</p>
+          </div>
+          <button className="text-sm font-medium text-white/80 hover:text-white hover:underline">
+            Show all
+          </button>
+        </div>
+        <div className="flex overflow-x-auto gap-4 pb-4 -mx-2 scrollbar-hide">
+          {madeForYouSongs.slice(0, 8).map((song) => (
+            <div key={song._id} className="flex-shrink-0 w-48">
+              <AlbumCard song={song} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {madeForYouSongs.length > 8 && (
+        <section>
+          <h2 className="text-2xl font-bold text-white mb-6">All Songs</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {madeForYouSongs.slice(8).map((song) => (
+              <div key={song._id} className="flex-shrink-0">
+                <AlbumCard song={song} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }

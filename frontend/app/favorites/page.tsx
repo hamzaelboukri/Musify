@@ -12,7 +12,7 @@ export default function FavoritesPage() {
   const [songs, setSongs] = useState<unknown[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/');
+    if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
   useEffect(() => {
@@ -31,8 +31,8 @@ export default function FavoritesPage() {
   if (loading) return <div className="p-8 text-center text-white/60">Loading...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-8">Favorites</h1>
+    <div className="px-6 py-8 bg-gradient-to-b from-musify-teal/10 via-musify-purple/5 to-musify-dark min-h-full">
+      <h1 className="text-3xl font-bold text-white mb-8">Liked Songs</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {(songs as { _id: string }[]).map((song) => (
           <SongCard

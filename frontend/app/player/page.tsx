@@ -11,7 +11,7 @@ export default function PlayerPage() {
   const { currentSong, queue } = usePlayer();
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/');
+    if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
   if (loading) return <div className="p-8 text-center text-white/60">Loading...</div>;

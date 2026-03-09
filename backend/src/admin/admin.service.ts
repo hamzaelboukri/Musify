@@ -7,6 +7,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Song, SongDocument } from '../songs/schemas/song.schema';
+import { SingerProfile, SingerProfileDocument } from '../singers/schemas/singer-profile.schema';
+import { Playlist, PlaylistDocument } from '../playlists/schemas/playlist.schema';
 import { UserRole } from '../users/schemas/user.schema';
 
 @Injectable()
@@ -18,6 +20,8 @@ export class AdminService {
     private sessionsService: SessionsService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Song.name) private songModel: Model<SongDocument>,
+    @InjectModel(SingerProfile.name) private singerModel: Model<SingerProfileDocument>,
+    @InjectModel(Playlist.name) private playlistModel: Model<PlaylistDocument>,
   ) {}
 
   async getUsers(skip = 0, limit = 20) {
@@ -61,15 +65,43 @@ export class AdminService {
   }
 
   async getPlatformStats() {
-    const [userCount, songCount, totalPlays] = await Promise.all([
+    const [
+      userCount,
+      songCount,
+      totalPlays,
+      pendingSongsCount,
+      singerCount,
+      pendingSingersCount,
+      playlistCount,
+      bannedCount,
+      listenersCount,
+      artistsCount,
+      adminsCount,
+    ] = await Promise.all([
       this.userModel.countDocuments(),
       this.songModel.countDocuments({ isApproved: true }),
       this.songModel.aggregate([{ $group: { _id: null, total: { $sum: '$playCount' } } }]),
+      this.songModel.countDocuments({ isApproved: false }),
+      this.singerModel.countDocuments({ isApproved: true }),
+      this.singerModel.countDocuments({ isApproved: false }),
+      this.playlistModel.countDocuments(),
+      this.userModel.countDocuments({ isBanned: true }),
+      this.userModel.countDocuments({ role: UserRole.USER }),
+      this.userModel.countDocuments({ role: UserRole.SINGER }),
+      this.userModel.countDocuments({ role: UserRole.ADMIN }),
     ]);
     return {
       totalUsers: userCount,
       totalSongs: songCount,
       totalPlays: totalPlays[0]?.total || 0,
+      pendingSongs: pendingSongsCount,
+      totalSingers: singerCount,
+      pendingSingers: pendingSingersCount,
+      totalPlaylists: playlistCount,
+      bannedUsers: bannedCount,
+      listeners: listenersCount,
+      artists: artistsCount,
+      admins: adminsCount,
     };
   }
 }

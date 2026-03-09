@@ -46,11 +46,11 @@ export function SongCard({ song, onFavorite, isFavorite }: SongCardProps) {
         >
           <div className="w-14 h-14 rounded-full bg-musify-accent flex items-center justify-center">
             {isCurrent && isPlaying ? (
-              <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             ) : (
-              <svg className="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
