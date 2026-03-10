@@ -16,6 +16,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
+    if (!loading && user?.role === 'SINGER') router.replace('/singer-dashboard?tab=profile');
   }, [user, loading, router]);
 
   useEffect(() => {

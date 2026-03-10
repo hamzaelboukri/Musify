@@ -48,3 +48,13 @@ export const DeleteIcon = createIcon('DeleteIcon', 'M6 19c0 1.1.9 2 2 2h8c1.1 0 
 export const SuccessIcon = createIcon('SuccessIcon', 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z');
 
 export const WarningIcon = createIcon('WarningIcon', 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z');
+
+export const CheckCircleIcon = createIcon('CheckCircleIcon', 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z');
+
+export const CalendarIcon = createIcon('CalendarIcon', 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z');
+
+export const BellIcon = createIcon('BellIcon', 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z');
+
+export const ChevronUpIcon = createIcon('ChevronUpIcon', 'M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z');
+
+export const LogoutIcon = createIcon('LogoutIcon', 'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z');

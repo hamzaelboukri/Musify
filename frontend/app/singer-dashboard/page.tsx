@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { singerService } from '@/services/singerService';
@@ -19,7 +19,12 @@ import {
   InfoIcon,
   PlayIcon,
   DeleteIcon,
+  CheckCircleIcon,
+  BellIcon,
+  ChevronUpIcon,
 } from '@/components/icons';
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 type Song = {
   _id: string;
@@ -42,7 +47,8 @@ type Stats = {
 export default function SingerDashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [profile, setProfile] = useState<{ _id: string; stageName: string; isApproved: boolean } | null>(null);
+  const searchParams = useSearchParams();
+  const [profile, setProfile] = useState<{ _id: string; stageName: string; isApproved: boolean; bio?: string; image?: string } | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -162,6 +168,23 @@ export default function SingerDashboardPage() {
     );
   }
 
+  const activeTab = searchParams.get('tab') === 'profile' ? 'profile' : 'dashboard';
+
+  const weeklyStreams = (() => {
+    const total = stats?.totalPlays ?? 0;
+    const base = Math.floor(total / 7);
+    const remainder = total % 7;
+    return DAYS.map((_, i) => base + (i < remainder ? 1 : 0));
+  })();
+  const maxStreams = Math.max(...weeklyStreams, 1);
+
+  const profileTasks = [
+    { id: 1, label: 'Complete profile setup', done: !!profile?.bio },
+    { id: 2, label: 'Upload first song', done: (stats?.totalSongs ?? 0) > 0 },
+    { id: 3, label: 'Get artist approval', done: profile?.isApproved ?? false },
+    { id: 4, label: 'Reach 100 streams', done: (stats?.totalPlays ?? 0) >= 100 },
+  ];
+
   // Main dashboard - reference design
   const filteredSongs = songs.filter(
     (s) => !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.artist.toLowerCase().includes(searchQuery.toLowerCase())
@@ -180,7 +203,7 @@ export default function SingerDashboardPage() {
             { href: '/singer-dashboard', icon: GridIcon, label: 'Dashboard' },
             { href: '/singer-dashboard', icon: MusicIcon, label: 'Songs' },
             { href: '/singer-dashboard', icon: ChartIcon, label: 'Stats' },
-            { href: '/profile', icon: SettingsIcon, label: 'Settings' },
+            { href: '/singer-dashboard?tab=profile', icon: SettingsIcon, label: 'Profile' },
           ].map((item) => (
             <Link
               key={item.label}
@@ -201,36 +224,37 @@ export default function SingerDashboardPage() {
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-musify-dark/95 backdrop-blur border-b border-white/5 px-6 py-4">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-musify-teal to-musify-purple flex items-center justify-center text-white font-bold">
-                {user?.name?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-white">Greetings! Start your day with {profile?.stageName || 'Artist'}</h1>
-                <p className="text-white/60 text-sm">Artist Dashboard</p>
-              </div>
-            </div>
-            <div className="flex-1 max-w-md mx-auto">
-              <div className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size="md" />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50 focus:border-musify-teal"
-                />
-              </div>
-            </div>
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium transition"
-            >
-              <UserIcon size="md" />
-              My account
-              <ChevronDownIcon size="sm" className="ml-0.5 opacity-70" />
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 text-sm font-medium transition">
+              <BackIcon size="sm" />
+              Back
             </Link>
+            <nav className="flex items-center gap-1">
+              <Link
+                href="/singer-dashboard?tab=profile"
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                  activeTab === 'profile' ? 'bg-musify-card text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Profile
+              </Link>
+              <Link
+                href="/singer-dashboard"
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                  activeTab === 'dashboard' ? 'bg-musify-card text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Dashboard
+              </Link>
+            </nav>
+            <div className="flex items-center gap-2">
+              <button className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition">
+                <BellIcon size="md" />
+              </button>
+              <Link href="/profile" className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition">
+                <SettingsIcon size="md" />
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -242,6 +266,108 @@ export default function SingerDashboardPage() {
             </div>
           )}
 
+          {activeTab === 'profile' ? (
+            /* Profile tab - inside dashboard */
+            <div className="max-w-6xl mx-auto">
+              <h1 className="text-2xl font-bold text-white mb-8">Welcome in, {profile?.stageName || user?.name || 'Artist'}</h1>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-6">
+                  <div className="rounded-2xl bg-musify-card border border-white/10 overflow-hidden relative">
+                    <div className="p-6">
+                      <div className="relative inline-block">
+                        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-musify-teal to-musify-purple flex items-center justify-center text-4xl font-bold text-white overflow-hidden">
+                          {profile?.image ? <img src={profile.image} alt="" className="w-full h-full object-cover" /> : profile?.stageName?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 px-3 py-1 rounded-full bg-musify-teal text-white text-sm font-semibold shadow-lg">{stats?.totalPlays ?? 0} plays</div>
+                      </div>
+                      <h2 className="text-xl font-bold text-white mt-4">{profile?.stageName || 'Artist'}</h2>
+                      <p className="text-white/60 text-sm">Artist · Musify</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                    <h3 className="text-sm font-medium text-white/70 mb-4">Streams this week</h3>
+                    <div className="flex items-end gap-2 h-24">
+                      {weeklyStreams.map((val, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div className="w-full rounded-t-lg min-h-[4px] transition-all" style={{ height: `${(val / maxStreams) * 80}px`, backgroundColor: i === 4 ? 'rgb(6, 182, 212)' : 'rgba(255,255,255,0.15)' }} />
+                          <span className="text-white/50 text-xs">{DAYS[i]}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-musify-teal text-sm font-medium mt-2">{weeklyStreams[4]} streams on Fri</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                    <div className="flex flex-col items-center">
+                      <div className="relative w-40 h-40">
+                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#06b6d4" strokeWidth="3" strokeDasharray={`${Math.min(100, ((stats?.totalPlays ?? 0) / 1000) * 10)} 100`} strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <p className="text-2xl font-bold text-white">{stats?.totalPlays ?? 0}</p>
+                          <p className="text-white/50 text-sm">Total Streams</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 mt-4">
+                        <button className="p-2 rounded-full bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30 transition"><PlayIcon size="md" /></button>
+                        <button className="p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/15 transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-2xl bg-musify-card border border-white/10 p-4">
+                      <p className="text-white/60 text-sm">Songs</p>
+                      <p className="text-2xl font-bold text-white">{stats?.totalSongs ?? 0}</p>
+                    </div>
+                    <div className="rounded-2xl bg-musify-card border border-white/10 p-4">
+                      <p className="text-white/60 text-sm">Approved</p>
+                      <p className="text-2xl font-bold text-musify-teal">{stats?.approvedSongs ?? 0}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="rounded-2xl bg-musify-darker border border-white/10 p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Onboarding Tasks</h3>
+                    <div className="space-y-4">
+                      {profileTasks.map((t) => (
+                        <div key={t.id} className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${t.done ? 'bg-musify-teal/30 text-musify-teal' : 'bg-white/10 text-white/40'}`}>
+                            {t.done ? <CheckCircleIcon size="sm" /> : <div className="w-2 h-2 rounded-full bg-white/40" />}
+                          </div>
+                          <p className={`text-sm font-medium ${t.done ? 'text-white/70 line-through' : 'text-white'}`}>{t.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Link href="/singer-dashboard" className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30 text-sm font-medium transition">Task <ChevronUpIcon size="sm" className="rotate-90" /></Link>
+                  </div>
+                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white">Calendar</h3>
+                      <button className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5"><ChevronUpIcon size="sm" className="rotate-90" /></button>
+                    </div>
+                    <p className="text-white/50 text-sm mb-3">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => <span key={d} className="text-white/50 font-medium py-1">{d}</span>)}
+                      {(() => {
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+                        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                        const cells: Array<{ day: number; isCurrentMonth: boolean }> = [];
+                        for (let i = 0; i < firstDay; i++) cells.push({ day: 0, isCurrentMonth: false });
+                        for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, isCurrentMonth: true });
+                        while (cells.length < 42) cells.push({ day: 0, isCurrentMonth: false });
+                        return cells.slice(0, 35).map(({ day, isCurrentMonth }, i) => (
+                          <span key={i} className={`py-1.5 rounded-lg ${isCurrentMonth ? (day === today.getDate() ? 'bg-musify-teal text-white font-semibold' : 'text-white hover:bg-white/5') : 'text-white/30'}`}>{day || ''}</span>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left column: Cards + Recent Activity */}
             <div className="lg:col-span-2 space-y-6">
@@ -285,7 +411,7 @@ export default function SingerDashboardPage() {
                   ].map((a) => (
                     <Link
                       key={a.label}
-                      href={a.label === 'Upload' ? '#' : a.label === 'Profile' ? '/profile' : '/singer-dashboard'}
+                      href={a.label === 'Upload' ? '#' : a.label === 'Profile' ? '/singer-dashboard?tab=profile' : '/singer-dashboard'}
                       onClick={a.label === 'Upload' ? () => setShowUpload(true) : undefined}
                       className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl transition ${
                         a.primary
@@ -475,6 +601,7 @@ export default function SingerDashboardPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </main>
     </div>

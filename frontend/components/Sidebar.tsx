@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { LogoutIcon } from '@/components/icons';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const { user, logout } = useAuth();
+  const isSingerProfile = pathname === '/singer-dashboard' && searchParams.get('tab') === 'profile';
 
   const navItems = [
     { href: '/', label: 'Home', icon: HomeIcon },
@@ -64,12 +67,25 @@ export function Sidebar() {
             </Link>
           )}
           <Link
-            href="/profile"
+            href={user?.role === 'SINGER' ? '/singer-dashboard?tab=profile' : '/profile'}
             title="Profile"
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
+              (user?.role === 'SINGER' ? isSingerProfile : pathname === '/profile')
+                ? 'bg-musify-teal/20 text-musify-teal'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
           >
             <SettingsIcon className="w-6 h-6" />
           </Link>
+          {user && (
+            <button
+              onClick={async () => { await logout(); window.location.href = '/'; }}
+              title="Log out"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+            >
+              <LogoutIcon className="w-6 h-6" />
+            </button>
+          )}
         </div>
       </nav>
     </aside>
