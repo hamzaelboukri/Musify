@@ -77,6 +77,27 @@ export class SongsService {
       .lean();
   }
 
+  async getNewReleases(limit = 10) {
+    return this.songModel
+      .find({ isApproved: true })
+      .populate('singerId')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+  }
+
+  async getPlatformStats() {
+    const [totalPlays, totalSongs] = await Promise.all([
+      this.songModel.aggregate([{ $match: { isApproved: true } }, { $group: { _id: null, total: { $sum: '$playCount' } } }]),
+      this.songModel.countDocuments({ isApproved: true }),
+    ]);
+    return {
+      totalStreams: totalPlays[0]?.total ?? 0,
+      totalSongs: totalSongs ?? 0,
+      totalDownloads: 0,
+    };
+  }
+
   async getPendingApproval() {
     return this.songModel.find({ isApproved: false }).populate('singerId').lean();
   }

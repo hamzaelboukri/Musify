@@ -18,7 +18,7 @@ type AlbumCardProps = {
 export function AlbumCard({ song }: AlbumCardProps) {
   const { play, currentSong, isPlaying } = usePlayer();
   const isCurrent = currentSong?._id === song._id;
-  const image = song.coverImage || 'https://picsum.photos/200';
+  const image = song.coverImage || '/placeholder.svg';
 
   return (
     <div

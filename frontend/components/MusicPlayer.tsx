@@ -18,7 +18,7 @@ export function MusicPlayer() {
       <div className="max-w-[1800px] mx-auto flex items-center gap-4">
         <div className="flex items-center gap-4 min-w-[280px]">
           <img
-            src={currentSong.coverImage || 'https://picsum.photos/64'}
+            src={currentSong.coverImage || '/placeholder.svg'}
             alt={currentSong.title}
             className="w-14 h-14 rounded-md object-cover shadow-lg"
           />

@@ -32,6 +32,18 @@ export class SongsController {
   }
 
   @Public()
+  @Get('new-releases')
+  getNewReleases(@Query('limit') limit?: string) {
+    return this.songsService.getNewReleases(parseInt(limit || '10'));
+  }
+
+  @Public()
+  @Get('stats')
+  getPlatformStats() {
+    return this.songsService.getPlatformStats();
+  }
+
+  @Public()
   @Get(':id')
   findById(@Param('id') id: string) {
     return this.songsService.findById(id);

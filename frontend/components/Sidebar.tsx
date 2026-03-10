@@ -10,75 +10,66 @@ export function Sidebar() {
 
   const navItems = [
     { href: '/', label: 'Home', icon: HomeIcon },
-    { href: '/', label: 'Search', icon: SearchIcon },
-    { href: '/playlists', label: 'Your Library', icon: LibraryIcon },
+    { href: '/playlists', label: 'Library', icon: LibraryIcon },
+    { href: '/favorites', label: 'Liked', icon: HeartIcon },
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 z-30 bg-musify-sidebar flex flex-col">
-      <Link href="/" className="p-6 flex items-center gap-3">
+    <aside className="fixed left-0 top-0 bottom-0 w-20 z-30 bg-musify-sidebar flex flex-col items-center py-6 border-r border-white/5">
+      <Link href="/" className="mb-8">
         <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
-        <span className="text-xl font-bold bg-gradient-to-r from-musify-teal to-musify-purple bg-clip-text text-transparent">
-          Musify<span className="text-musify-teal">.</span>
-        </span>
       </Link>
 
-      <nav className="px-3 py-4 flex-1">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href === '/' && pathname === '/');
-            return (
-              <li key={item.label}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-4 px-3 py-2.5 rounded-lg transition ${
-                    isActive ? 'bg-musify-frosted text-white' : 'text-musify-text-secondary hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <item.icon className="w-6 h-6" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex flex-col items-center gap-2 flex-1">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href || (item.href === '/' && pathname === '/');
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              title={item.label}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
+                isActive ? 'bg-musify-teal/20 text-musify-teal' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <item.icon className="w-6 h-6" />
+            </Link>
+          );
+        })}
 
-        <div className="mt-6 pt-6 border-t border-white/10">
+        <div className="mt-auto pt-6 border-t border-white/10 flex flex-col items-center gap-2">
           <Link
             href="/playlists"
-            className="flex items-center gap-4 px-3 py-2.5 rounded-lg text-musify-text-secondary hover:text-white hover:bg-white/5 transition"
+            title="Create Playlist"
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
           >
-            <div className="w-6 h-6 rounded bg-white/20 flex items-center justify-center">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-              </svg>
-            </div>
-            <span className="font-medium">Create Playlist</span>
+            <PlusIcon className="w-6 h-6" />
           </Link>
-          <Link
-            href="/favorites"
-            className="flex items-center gap-4 px-3 py-2.5 rounded-lg text-musify-text-secondary hover:text-white hover:bg-white/5 transition mt-1"
-          >
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-musify-teal to-musify-purple flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              </svg>
-            </div>
-            <span className="font-medium">Liked Songs</span>
-          </Link>
-        </div>
-
-        <div className="mt-4 space-y-1 max-h-64 overflow-y-auto">
           {user?.role === 'SINGER' && (
-            <Link href="/singer-dashboard" className="block px-3 py-2 text-white/60 hover:text-white text-sm truncate">
-              Dashboard
+            <Link
+              href="/singer-dashboard"
+              title="Dashboard"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+            >
+              <DashboardIcon className="w-6 h-6" />
             </Link>
           )}
           {user?.role === 'ADMIN' && (
-            <Link href="/admin-dashboard" className="block px-3 py-2 text-white/60 hover:text-white text-sm truncate">
-              Admin
+            <Link
+              href="/admin-dashboard"
+              title="Admin"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+            >
+              <ShieldIcon className="w-6 h-6" />
             </Link>
           )}
+          <Link
+            href="/profile"
+            title="Profile"
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+          >
+            <SettingsIcon className="w-6 h-6" />
+          </Link>
         </div>
       </nav>
     </aside>
@@ -93,18 +84,50 @@ function HomeIcon({ className }: { className?: string }) {
   );
 }
 
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-    </svg>
-  );
-}
-
 function LibraryIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+    </svg>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+    </svg>
+  );
+}
+
+function DashboardIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+    </svg>
+  );
+}
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+    </svg>
+  );
+}
+
+function SettingsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
     </svg>
   );
 }

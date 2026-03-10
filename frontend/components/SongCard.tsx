@@ -35,7 +35,7 @@ export function SongCard({ song, onFavorite, isFavorite }: SongCardProps) {
     >
       <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
         <img
-          src={song.coverImage || 'https://picsum.photos/200'}
+          src={song.coverImage || '/placeholder.svg'}
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-105 transition"
         />
