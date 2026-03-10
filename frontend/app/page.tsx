@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearch } from '@/contexts/SearchContext';
 import { songService } from '@/services/songService';
 import { AlbumCard } from '@/components/AlbumCard';
+import { SongCard } from '@/components/SongCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { favoriteService } from '@/services/favoriteService';
 import { usePlayer } from '@/contexts/PlayerContext';
@@ -25,9 +26,11 @@ type Song = {
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { searchQuery, setSearchQuery } = useSearch();
+  const { searchQuery } = useSearch();
   const { play, currentSong, isPlaying } = usePlayer();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [searchResults, setSearchResults] = useState<Song[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [trending, setTrending] = useState<Song[]>([]);
   const [newReleases, setNewReleases] = useState<Song[]>([]);
   const [platformStats, setPlatformStats] = useState<{ totalStreams: number; totalDownloads: number }>({ totalStreams: 0, totalDownloads: 0 });
@@ -35,11 +38,25 @@ export default function HomePage() {
   const [selectedGenre, setSelectedGenre] = useState('All');
 
   useEffect(() => {
-    songService.getAll({ search: searchQuery || undefined, genre: selectedGenre === 'All' ? undefined : selectedGenre, limit: 50 }).then(({ data }) => setSongs(data as Song[]));
+    songService.getAll({ genre: selectedGenre === 'All' ? undefined : selectedGenre, limit: 50 }).then(({ data }) => setSongs(data as Song[]));
     songService.getTrending(10).then(({ data }) => setTrending(data as Song[]));
     songService.getNewReleases(8).then(({ data }) => setNewReleases(data as Song[]));
     songService.getPlatformStats().then(({ data }) => setPlatformStats({ totalStreams: data.totalStreams ?? 0, totalDownloads: data.totalDownloads ?? 0 }));
-  }, [searchQuery, selectedGenre]);
+  }, [selectedGenre]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    const timer = setTimeout(() => {
+      songService.getAll({ search: searchQuery.trim(), limit: 50 }).then(({ data }) => {
+        setSearchResults((data as Song[]) || []);
+      }).finally(() => setSearchLoading(false));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (user) {
@@ -50,14 +67,65 @@ export default function HomePage() {
     }
   }, [user]);
 
+  const toggleFavorite = async (songId: string, isFav: boolean) => {
+    try {
+      if (isFav) {
+        await favoriteService.remove(songId);
+        setFavorites((prev) => { const n = new Set(prev); n.delete(songId); return n; });
+      } else {
+        await favoriteService.add(songId);
+        setFavorites((prev) => new Set(prev).add(songId));
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
   const topHits = trending.slice(0, 6);
   const artists = Array.from(new Map(songs.map((s) => [s.artist, { name: s.artist, cover: s.coverImage }])).values()).slice(0, 6);
 
   const formatPlays = (n: number) => (n >= 1000000 ? `${(n / 1000000).toFixed(1)}m` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : '0');
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}.${(sec % 60).toString().padStart(2, '0')} min`;
 
+  const showSearchResults = searchQuery.trim().length > 0;
+
   return (
     <div className="min-h-full">
+      {/* Search results (when typing) */}
+      {showSearchResults && (
+        <div className="px-6 pt-6 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">
+              Search results for <span className="text-musify-teal">&quot;{searchQuery}&quot;</span>
+            </h2>
+            <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="text-musify-teal text-sm font-medium hover:underline">
+              See all →
+            </Link>
+          </div>
+          {searchLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 rounded-full border-2 border-musify-teal/40 border-t-musify-teal animate-spin" />
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="py-12 text-center rounded-2xl bg-musify-card/50 border border-white/5">
+              <p className="text-white/60">No results found</p>
+              <p className="text-white/40 text-sm mt-1">Try different keywords</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {searchResults.slice(0, 10).map((song) => (
+                <SongCard
+                  key={song._id}
+                  song={song}
+                  onFavorite={user ? (id) => toggleFavorite(id, favorites.has(id)) : undefined}
+                  isFavorite={favorites.has(song._id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Genre tabs */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
