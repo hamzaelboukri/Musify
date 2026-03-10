@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { MusicPlayer } from './MusicPlayer';
+import { BlurColors } from './BlurColors';
 
 const DASHBOARD_ROUTES = ['/profile', '/singer-dashboard', '/admin-dashboard'];
 
@@ -16,7 +17,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isAuthPage) {
     return (
       <>
-        <div className="min-h-screen">{children}</div>
+        <BlurColors />
+        <div className="min-h-screen relative">{children}</div>
         <MusicPlayer />
       </>
     );
@@ -26,7 +28,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isDashboardPage) {
     return (
       <>
-        <div className="min-h-screen bg-musify-dark">{children}</div>
+        <BlurColors />
+        <div className="min-h-screen relative">{children}</div>
         <MusicPlayer />
       </>
     );
@@ -35,9 +38,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Main app: sidebar + header (Home, Search, Library, Playlists, etc.)
   return (
     <>
-      <div className="flex min-h-screen">
+      <BlurColors />
+      <div className="flex min-h-screen relative">
         <Sidebar />
-          <div className="flex-1 flex flex-col ml-20">
+        <div className="flex-1 flex flex-col ml-20">
           <TopHeader />
           <main className="flex-1 overflow-y-auto pb-24">{children}</main>
         </div>

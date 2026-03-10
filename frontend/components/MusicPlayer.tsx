@@ -14,7 +14,7 @@ export function MusicPlayer() {
   const formatTime = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-musify-dark/95 backdrop-blur-md border-t border-white/5 px-4 py-2">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/30 backdrop-blur-[50px] backdrop-saturate-150 border-t border-white/10 shadow-[0_-4px_40px_rgba(0,0,0,0.4)] px-4 py-2">
       <div className="max-w-[1800px] mx-auto flex items-center gap-4">
         <div className="flex items-center gap-4 min-w-[280px]">
           <img
@@ -47,14 +47,14 @@ export function MusicPlayer() {
             </button>
             <button
               onClick={toggle}
-              className="w-12 h-12 rounded-full bg-musify-accent flex items-center justify-center text-white hover:scale-105 transition shadow-lg shadow-cyan-500/40"
+              className="relative w-14 h-14 rounded-full bg-musify-teal flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_0_0_0_rgba(6,182,212,0.4),0_0_20px_rgba(6,182,212,0.5),0_0_40px_rgba(6,182,212,0.3)] hover:shadow-[0_0_0_0_rgba(6,182,212,0.5),0_0_25px_rgba(6,182,212,0.6),0_0_50px_rgba(6,182,212,0.35)]"
             >
               {isPlaying ? (
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                 </svg>
               ) : (
-                <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -78,7 +78,10 @@ export function MusicPlayer() {
               max={100}
               value={progress}
               onChange={(e) => seek(parseFloat(e.target.value))}
-              className="flex-1 h-1 rounded-full appearance-none bg-white/20 cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-musify-accent [&::-webkit-slider-thumb]:shadow-md"
+              style={{
+                background: `linear-gradient(to right, rgb(6 182 212) 0%, rgb(6 182 212) ${progress}%, rgba(255,255,255,0.2) ${progress}%)`,
+              }}
+              className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-musify-teal [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(6,182,212,0.6),0_0_4px_rgba(6,182,212,0.4)] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-musify-teal [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(6,182,212,0.6)]"
             />
             <span className="text-xs text-white/60 w-10">{formatTime(totalTime)}</span>
           </div>

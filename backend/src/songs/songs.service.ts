@@ -13,10 +13,11 @@ export class SongsService {
     return song.save();
   }
 
-  async findAll(filters?: { genre?: string; artist?: string; search?: string }, skip = 0, limit = 20) {
+  async findAll(filters?: { genre?: string; artist?: string; album?: string; search?: string }, skip = 0, limit = 20) {
     const query: any = { isApproved: true };
     if (filters?.genre) query.genre = new RegExp(filters.genre, 'i');
     if (filters?.artist) query.artist = new RegExp(filters.artist, 'i');
+    if (filters?.album) query.album = new RegExp(filters.album, 'i');
     if (filters?.search) {
       query.$or = [
         { title: new RegExp(filters.search, 'i') },

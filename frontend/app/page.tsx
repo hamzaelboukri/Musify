@@ -15,6 +15,7 @@ type Song = {
   _id: string;
   title: string;
   artist: string;
+  album?: string;
   coverImage?: string;
   audioUrl: string;
   duration: number;
@@ -56,7 +57,7 @@ export default function HomePage() {
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}.${(sec % 60).toString().padStart(2, '0')} min`;
 
   return (
-    <div className="min-h-full bg-musify-dark">
+    <div className="min-h-full">
       {/* Genre tabs */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
@@ -140,10 +141,13 @@ export default function HomePage() {
               <div className="space-y-3">
                 {topHits.map((song, i) => {
                   const isCurrent = currentSong?._id === song._id;
+                  const albumHref = song.album
+                    ? `/album?album=${encodeURIComponent(song.album)}&artist=${encodeURIComponent(song.artist)}`
+                    : `/album?songId=${song._id}`;
                   return (
-                    <div
+                    <Link
                       key={song._id}
-                      onClick={() => play(song)}
+                      href={albumHref}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition group"
                     >
                       <img src={song.coverImage || '/placeholder.svg'} alt="" className="w-12 h-12 rounded-lg object-cover" />
@@ -151,12 +155,15 @@ export default function HomePage() {
                         <p className="text-white font-medium truncate">{song.title}</p>
                         <p className="text-white/50 text-xs">{formatPlays(song.playCount || 0)} plays · {formatDuration(song.duration)}</p>
                       </div>
-                      <button className="p-2 rounded-lg text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition">
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); play(song); }}
+                        className="p-2 rounded-lg text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition"
+                      >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
                       </button>
-                    </div>
+                    </Link>
                   );
                 })}
                 {topHits.length === 0 && <p className="text-white/50 text-sm py-4">No songs yet</p>}

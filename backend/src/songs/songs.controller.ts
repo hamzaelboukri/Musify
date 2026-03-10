@@ -14,12 +14,13 @@ export class SongsController {
   findAll(
     @Query('genre') genre?: string,
     @Query('artist') artist?: string,
+    @Query('album') album?: string,
     @Query('search') search?: string,
     @Query('skip') skip?: string,
     @Query('limit') limit?: string,
   ) {
     return this.songsService.findAll(
-      { genre, artist, search },
+      { genre, artist, album, search },
       parseInt(skip || '0'),
       parseInt(limit || '20'),
     );
