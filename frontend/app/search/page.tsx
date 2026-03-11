@@ -22,16 +22,18 @@ type Song = {
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const q = searchParams.get('q') ?? '';
-  const { setSearchQuery } = useSearch();
+  const qFromUrl = searchParams.get('q') ?? '';
+  const { searchQuery, setSearchQuery } = useSearch();
   const { user } = useAuth();
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
+  const q = qFromUrl || searchQuery;
+
   useEffect(() => {
-    setSearchQuery(q);
-  }, [q, setSearchQuery]);
+    if (qFromUrl) setSearchQuery(qFromUrl);
+  }, [qFromUrl, setSearchQuery]);
 
   useEffect(() => {
     if (user) {

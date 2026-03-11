@@ -51,27 +51,55 @@ export default function PlaylistDetailPage() {
   if (loading) return <div className="p-8 text-center text-white/60">Loading...</div>;
   if (!playlist) return <div className="p-8 text-center text-white/60">Playlist not found</div>;
 
+  const playlistSongs = (playlist.songs || []) as { _id: string; title?: string; artist?: string; coverImage?: string; audioUrl?: string; duration?: number }[];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-8">{playlist.name}</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {((playlist.songs || []) as { _id: string }[]).map((song) => (
-          <div key={song._id} className="relative">
-            <SongCard
-              song={song as Parameters<typeof SongCard>[0]['song']}
-              queue={(playlist.songs || []) as Parameters<typeof SongCard>[0]['song'][]}
-              onFavorite={user ? () => {} : undefined}
-              isFavorite={favorites.has(song._id)}
-            />
-            <button
-              onClick={() => removeSong(song._id)}
-              className="absolute top-2 left-2 p-2 rounded-full bg-red-500/80 hover:bg-red-500 text-white text-xs z-10"
-            >
-              Remove
-            </button>
+    <div className="px-6 py-8 min-h-full">
+      <h1 className="text-3xl font-bold text-white mb-8">{playlist.name}</h1>
+      {playlistSongs.length === 0 ? (
+        <div className="py-20 text-center rounded-2xl bg-musify-card/50 border border-white/5 border-dashed">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-musify-teal/10 flex items-center justify-center">
+            <svg className="w-10 h-10 text-musify-teal/50" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+            </svg>
           </div>
-        ))}
-      </div>
+          <p className="text-white/70 font-medium">This playlist is empty</p>
+          <p className="text-white/50 text-sm mt-1">Add songs from Search or Home to get started</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {playlistSongs.map((song) => (
+            <div key={song._id} className="relative">
+              <SongCard
+                song={{
+                  _id: song._id,
+                  title: song.title ?? 'Unknown',
+                  artist: song.artist ?? '',
+                  coverImage: song.coverImage,
+                  audioUrl: song.audioUrl ?? '',
+                  duration: song.duration ?? 0,
+                }}
+                queue={playlistSongs.map((s) => ({
+                  _id: s._id,
+                  title: s.title ?? 'Unknown',
+                  artist: s.artist ?? '',
+                  coverImage: s.coverImage,
+                  audioUrl: s.audioUrl ?? '',
+                  duration: s.duration ?? 0,
+                }))}
+                onFavorite={user ? () => {} : undefined}
+                isFavorite={favorites.has(song._id)}
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); removeSong(song._id); }}
+                className="absolute top-2 left-2 p-2 rounded-full bg-red-500/80 hover:bg-red-500 text-white text-xs z-10"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
