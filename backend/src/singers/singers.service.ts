@@ -70,21 +70,25 @@ export class SingersService {
 
   async getMySongs(userId: string) {
     const profile = await this.getProfileByUserId(userId);
+    if (!profile.isApproved) throw new ForbiddenException('Singer profile not approved');
     return this.songsService.findBySinger(profile._id.toString(), true);
   }
 
   async updateSong(songId: string, userId: string, data: Partial<UploadSongData>) {
     const profile = await this.getProfileByUserId(userId);
+    if (!profile.isApproved) throw new ForbiddenException('Singer profile not approved');
     return this.songsService.update(songId, data, profile._id.toString(), UserRole.SINGER);
   }
 
   async deleteSong(songId: string, userId: string) {
     const profile = await this.getProfileByUserId(userId);
+    if (!profile.isApproved) throw new ForbiddenException('Singer profile not approved');
     return this.songsService.delete(songId, profile._id.toString(), UserRole.SINGER);
   }
 
   async getStatistics(userId: string) {
     const profile = await this.getProfileByUserId(userId);
+    if (!profile.isApproved) throw new ForbiddenException('Singer profile not approved');
     const songs = await this.songModel.find({ singerId: profile._id }).lean();
     const totalPlays = songs.reduce((sum, s) => sum + (s.playCount || 0), 0);
     const approvedCount = songs.filter((s) => s.isApproved).length;

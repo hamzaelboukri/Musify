@@ -49,6 +49,7 @@ export default function SingerDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<{ _id: string; stageName: string; isApproved: boolean; bio?: string; image?: string } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [songs, setSongs] = useState<Song[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [showUpload, setShowUpload] = useState(false);
@@ -70,9 +71,20 @@ export default function SingerDashboardPage() {
 
   useEffect(() => {
     if (user?.role === 'SINGER') {
-      singerService.getMyProfile().then(({ data }) => setProfile(data)).catch(() => setProfile(null));
-      singerService.getMySongs().then(({ data }) => setSongs(data as Song[])).catch(() => setSongs([]));
-      singerService.getStats().then(({ data }) => setStats(data as Stats)).catch(() => setStats(null));
+      setProfileLoading(true);
+      singerService
+        .getMyProfile()
+        .then(({ data }) => {
+          setProfile(data);
+          if (data?.isApproved) {
+            singerService.getMySongs().then(({ data: s }) => setSongs(s as Song[])).catch(() => setSongs([]));
+            singerService.getStats().then(({ data: st }) => setStats(st as Stats)).catch(() => setStats(null));
+          }
+        })
+        .catch(() => setProfile(null))
+        .finally(() => setProfileLoading(false));
+    } else {
+      setProfileLoading(false);
     }
   }, [user]);
 
@@ -111,7 +123,7 @@ export default function SingerDashboardPage() {
   const approvedPct = stats ? (stats.totalSongs ? Math.round((stats.approvedSongs / stats.totalSongs) * 100) : 0) : 0;
   const pendingPct = stats ? (stats.totalSongs ? Math.round((stats.pendingSongs / stats.totalSongs) * 100) : 0) : 0;
 
-  if (loading) {
+  if (loading || (user?.role === 'SINGER' && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-musify-dark">
         <div className="flex flex-col items-center gap-4">
@@ -162,6 +174,37 @@ export default function SingerDashboardPage() {
                 Apply
               </button>
             </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Block dashboard access until admin approval
+  if (user?.role === 'SINGER' && profile && !profile.isApproved) {
+    return (
+      <div className="min-h-full bg-musify-dark">
+        <header className="sticky top-0 z-10 px-6 py-4 bg-musify-dark/95 backdrop-blur border-b border-white/10">
+          <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 text-sm font-medium transition">
+            <BackIcon size="sm" />
+            Back to Musify
+          </Link>
+        </header>
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-8">
+          <div className="max-w-md w-full text-center">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-amber-500/20 flex items-center justify-center">
+              <svg className="w-12 h-12 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Pending Approval</h1>
+            <p className="text-white/70 mb-6">
+              Your artist application is under review. An admin will approve your account soon. You will be able to access the singer dashboard and upload music once approved.
+            </p>
+            <p className="text-white/50 text-sm">Stage name: <span className="text-white/80 font-medium">{profile.stageName}</span></p>
+            <Link href="/" className="inline-block mt-8 px-6 py-3 rounded-xl bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30 font-medium transition">
+              Back to Home
+            </Link>
           </div>
         </div>
       </div>
@@ -259,13 +302,6 @@ export default function SingerDashboardPage() {
         </header>
 
         <div className="flex-1 p-6 overflow-auto">
-          {profile && !profile.isApproved && (
-            <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200 text-sm">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
-              Pending approval – songs will be public once approved
-            </div>
-          )}
-
           {activeTab === 'profile' ? (
             /* Profile tab - inside dashboard */
             <div className="max-w-6xl mx-auto">
