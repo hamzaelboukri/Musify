@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogoutIcon } from '@/components/icons';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -19,7 +20,7 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-20 z-30 bg-musify-sidebar flex flex-col items-center py-6 border-r border-white/5">
+    <aside className="fixed left-0 top-0 bottom-0 w-20 z-30 bg-zinc-100 dark:bg-musify-sidebar flex flex-col items-center py-6 border-r border-zinc-200 dark:border-white/5">
       <Link href="/" className="mb-8">
         <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
       </Link>
@@ -33,7 +34,7 @@ export function Sidebar() {
               href={item.href}
               title={item.label}
               className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
-                isActive ? 'bg-musify-teal/20 text-musify-teal' : 'text-white/60 hover:text-white hover:bg-white/5'
+                isActive ? 'bg-musify-teal/20 text-musify-teal dark:text-musify-teal' : 'text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5'
               }`}
             >
               <item.icon className="w-6 h-6" />
@@ -41,11 +42,12 @@ export function Sidebar() {
           );
         })}
 
-        <div className="mt-auto pt-6 border-t border-white/10 flex flex-col items-center gap-2">
+        <div className="mt-auto pt-6 border-t border-zinc-200 dark:border-white/10 flex flex-col items-center gap-2">
+          <ThemeToggle />
           <Link
             href="/playlists"
             title="Create Playlist"
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
           >
             <PlusIcon className="w-6 h-6" />
           </Link>
@@ -53,7 +55,7 @@ export function Sidebar() {
             <Link
               href="/singer-dashboard"
               title="Dashboard"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
             >
               <DashboardIcon className="w-6 h-6" />
             </Link>
@@ -62,7 +64,7 @@ export function Sidebar() {
             <Link
               href="/admin-dashboard"
               title="Admin"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
             >
               <ShieldIcon className="w-6 h-6" />
             </Link>
@@ -73,7 +75,7 @@ export function Sidebar() {
             className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
               (user?.role === 'SINGER' ? isSingerProfile : pathname === '/profile')
                 ? 'bg-musify-teal/20 text-musify-teal'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                : 'text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5'
             }`}
           >
             <SettingsIcon className="w-6 h-6" />
@@ -82,7 +84,7 @@ export function Sidebar() {
             <button
               onClick={async () => { await logout(); window.location.href = '/'; }}
               title="Log out"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
             >
               <LogoutIcon className="w-6 h-6" />
             </button>

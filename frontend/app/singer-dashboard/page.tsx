@@ -5,26 +5,26 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { singerService } from '@/services/singerService';
-import {
-  SearchIcon,
-  UserIcon,
-  ChevronDownIcon,
-  BackIcon,
-  GridIcon,
-  MusicIcon,
-  ChartIcon,
-  SettingsIcon,
-  UploadIcon,
-  MoreVerticalIcon,
-  InfoIcon,
-  PlayIcon,
-  DeleteIcon,
-  CheckCircleIcon,
-  BellIcon,
-  ChevronUpIcon,
-} from '@/components/icons';
+import { BackIcon, DeleteIcon, GridIcon, MusicIcon, ChartIcon, SettingsIcon } from '@/components/icons';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function smoothPath(points: { x: number; y: number }[], height: number): string {
+  if (points.length < 2) return '';
+  const pts = points.map((p) => ({ x: p.x, y: height - p.y }));
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
+    const next = pts[i + 1] || curr;
+    const cp1x = prev.x + (curr.x - (pts[i - 2] || prev).x) / 6;
+    const cp1y = prev.y + (curr.y - (pts[i - 2] || prev).y) / 6;
+    const cp2x = curr.x - (next.x - prev.x) / 6;
+    const cp2y = curr.y - (next.y - prev.y) / 6;
+    d += ` C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${curr.x} ${curr.y}`;
+  }
+  return d;
+}
 
 type Song = {
   _id: string;
@@ -33,6 +33,7 @@ type Song = {
   playCount: number;
   isApproved: boolean;
   genre?: string;
+  duration?: number;
   createdAt?: string;
 };
 
@@ -53,21 +54,35 @@ export default function SingerDashboardPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [showUpload, setShowUpload] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [chartPeriod, setChartPeriod] = useState<'1D'|'1W'|'1M'|'6M'|'1Y'>('6M');
+  const [tableFilter, setTableFilter] = useState<'all'|'gainers'|'losers'>('all');
+  const [watchFilter, setWatchFilter] = useState<'most'|'gainers'|'losers'>('most');
   const [applyForm, setApplyForm] = useState({ stageName: '', bio: '' });
   const [form, setForm] = useState({
     title: '',
     artist: '',
     album: '',
     genre: '',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     duration: 180,
   });
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
     if (user && user.role !== 'SINGER' && user.role !== 'ADMIN') router.replace('/');
   }, [user, loading, router]);
+
+  const activeNav = searchParams.get('nav') || 'overview';
+
+  useEffect(() => {
+    if (activeNav === 'songs' && songs.length === 0) setShowUpload(true);
+  }, [activeNav, songs.length]);
+
+  useEffect(() => {
+    if (profile?.stageName) setForm((f) => ({ ...f, artist: profile.stageName }));
+  }, [profile?.stageName]);
 
   useEffect(() => {
     if (user?.role === 'SINGER') {
@@ -90,18 +105,32 @@ export default function SingerDashboardPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !audioFile) return;
+    setUploading(true);
     try {
+      const { data: audioData } = await singerService.uploadAudio(audioFile);
+      let coverImage: string | undefined;
+      if (imageFile) {
+        const { data: imageData } = await singerService.uploadImage(imageFile);
+        coverImage = imageData.url;
+      }
       await singerService.uploadSong({
         ...form,
+        artist: form.artist || profile.stageName,
         singerId: profile._id,
+        audioUrl: audioData.url,
+        coverImage,
       });
       singerService.getMySongs().then(({ data }) => setSongs(data as Song[]));
       singerService.getStats().then(({ data }) => setStats(data as Stats));
       setShowUpload(false);
-      setForm({ title: '', artist: profile.stageName, album: '', genre: '', audioUrl: form.audioUrl, duration: 180 });
+      setForm({ title: '', artist: profile.stageName, album: '', genre: '', duration: 180 });
+      setAudioFile(null);
+      setImageFile(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -121,25 +150,23 @@ export default function SingerDashboardPage() {
 
   const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
   const approvedPct = stats ? (stats.totalSongs ? Math.round((stats.approvedSongs / stats.totalSongs) * 100) : 0) : 0;
-  const pendingPct = stats ? (stats.totalSongs ? Math.round((stats.pendingSongs / stats.totalSongs) * 100) : 0) : 0;
 
   if (loading || (user?.role === 'SINGER' && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-musify-dark">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-2 border-musify-teal/30 border-t-musify-teal animate-spin" />
-          <p className="text-white/70">Loading dashboard...</p>
+          <p className="text-musify-text-muted">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // Apply form
   if (user?.role === 'SINGER' && !profile) {
     return (
       <div className="min-h-full bg-musify-dark">
-        <header className="sticky top-0 z-10 px-6 py-4 bg-musify-dark/95 backdrop-blur border-b border-white/10">
-          <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 text-sm font-medium transition">
+        <header className="sticky top-0 z-10 px-6 py-4 bg-musify-sidebar/95 backdrop-blur border-b border-white/10">
+          <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-musify-text-muted hover:text-white hover:bg-white/5 text-sm font-medium transition">
             <BackIcon size="sm" />
             Back to Musify
           </Link>
@@ -147,30 +174,30 @@ export default function SingerDashboardPage() {
         <div className="flex items-center justify-center p-8 min-h-[calc(100vh-60px)]">
           <div className="max-w-md w-full">
             <div className="text-center mb-8">
-              <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-musify-teal to-musify-purple items-center justify-center mb-4 shadow-lg shadow-musify-teal/30">
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex w-16 h-16 rounded-2xl bg-musify-teal/20 items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-musify-teal" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-white">Become an Artist</h1>
-              <p className="text-white/70 mt-2">Create your stage identity and start sharing your music</p>
+              <p className="text-musify-text-muted mt-2">Create your stage identity and start sharing your music</p>
             </div>
-            <form onSubmit={handleApply} className="space-y-4 p-6 rounded-2xl bg-musify-card border border-white/10 shadow-xl">
+            <form onSubmit={handleApply} className="space-y-4 p-6 rounded-2xl bg-musify-card border border-white/10">
               <input
                 value={applyForm.stageName}
                 onChange={(e) => setApplyForm((f) => ({ ...f, stageName: e.target.value }))}
                 placeholder="Stage Name"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50 focus:border-musify-teal"
+                className="w-full px-4 py-3 rounded-xl bg-musify-dark border border-white/10 text-white placeholder-musify-text-muted focus:outline-none focus:ring-2 focus:ring-musify-teal/50 focus:border-musify-teal"
               />
               <textarea
                 value={applyForm.bio}
                 onChange={(e) => setApplyForm((f) => ({ ...f, bio: e.target.value }))}
                 placeholder="Bio (optional)"
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50 focus:border-musify-teal resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-musify-dark border border-white/10 text-white placeholder-musify-text-muted focus:outline-none focus:ring-2 focus:ring-musify-teal/50 focus:border-musify-teal resize-none"
               />
-              <button type="submit" className="w-full py-3 rounded-xl bg-gradient-to-r from-musify-teal to-musify-purple hover:opacity-90 text-white font-semibold shadow-lg shadow-musify-teal/30 transition">
+              <button type="submit" className="w-full py-3 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-semibold transition">
                 Apply
               </button>
             </form>
@@ -180,12 +207,11 @@ export default function SingerDashboardPage() {
     );
   }
 
-  // Block dashboard access until admin approval
   if (user?.role === 'SINGER' && profile && !profile.isApproved) {
     return (
       <div className="min-h-full bg-musify-dark">
-        <header className="sticky top-0 z-10 px-6 py-4 bg-musify-dark/95 backdrop-blur border-b border-white/10">
-          <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 text-sm font-medium transition">
+        <header className="sticky top-0 z-10 px-6 py-4 bg-musify-sidebar/95 backdrop-blur border-b border-white/10">
+          <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-musify-text-muted hover:text-white hover:bg-white/5 text-sm font-medium transition">
             <BackIcon size="sm" />
             Back to Musify
           </Link>
@@ -198,10 +224,10 @@ export default function SingerDashboardPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Pending Approval</h1>
-            <p className="text-white/70 mb-6">
-              Your artist application is under review. An admin will approve your account soon. You will be able to access the singer dashboard and upload music once approved.
+            <p className="text-musify-text-muted mb-6">
+              Your artist application is under review. An admin will approve your account soon.
             </p>
-            <p className="text-white/50 text-sm">Stage name: <span className="text-white/80 font-medium">{profile.stageName}</span></p>
+            <p className="text-musify-text-muted text-sm">Stage name: <span className="text-white/80 font-medium">{profile.stageName}</span></p>
             <Link href="/" className="inline-block mt-8 px-6 py-3 rounded-xl bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30 font-medium transition">
               Back to Home
             </Link>
@@ -211,8 +237,6 @@ export default function SingerDashboardPage() {
     );
   }
 
-  const activeTab = searchParams.get('tab') === 'profile' ? 'profile' : 'dashboard';
-
   const weeklyStreams = (() => {
     const total = stats?.totalPlays ?? 0;
     const base = Math.floor(total / 7);
@@ -220,423 +244,491 @@ export default function SingerDashboardPage() {
     return DAYS.map((_, i) => base + (i < remainder ? 1 : 0));
   })();
   const maxStreams = Math.max(...weeklyStreams, 1);
+  const weekTotal = weeklyStreams.reduce((a, b) => a + b, 0);
 
-  const profileTasks = [
-    { id: 1, label: 'Complete profile setup', done: !!profile?.bio },
-    { id: 2, label: 'Upload first song', done: (stats?.totalSongs ?? 0) > 0 },
-    { id: 3, label: 'Get artist approval', done: profile?.isApproved ?? false },
-    { id: 4, label: 'Reach 100 streams', done: (stats?.totalPlays ?? 0) >= 100 },
+  // KPI - song statistics (not streams)
+  const totalPlays = stats?.totalPlays ?? 0;
+  const kpis = [
+    { label: 'Total Song Plays', value: totalPlays.toLocaleString(), change: totalPlays > 0 ? 12.5 : 0, positive: true },
+    { label: 'Songs This Week', value: weekTotal.toLocaleString(), change: weekTotal > 0 ? 8.2 : 0, positive: weekTotal > 0 },
+    { label: 'Songs Approved', value: `${stats?.approvedSongs ?? 0} / ${stats?.totalSongs ?? 0}`, change: approvedPct > 0 ? 6.5 : 0, positive: true },
+    { label: 'Total Songs', value: String(stats?.totalSongs ?? 0), change: (stats?.totalSongs ?? 0) > 0 ? 3.4 : 0, positive: true },
   ];
 
-  // Main dashboard - reference design
-  const filteredSongs = songs.filter(
-    (s) => !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const recentSongs = filteredSongs.slice(0, 6);
+  const topSongs = (stats?.topSongs ?? songs)
+    .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+    .slice(0, 5);
+
+  const portfolioSongs = topSongs.slice(0, 5);
 
   return (
     <div className="min-h-screen flex bg-musify-dark">
-      {/* Sidebar */}
-      <aside className="w-20 shrink-0 bg-musify-sidebar flex flex-col items-center py-6 border-r border-white/5">
-        <Link href="/" className="mb-8">
-          <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
-        </Link>
-        <nav className="flex flex-col items-center gap-2 flex-1">
-          {[
-            { href: '/singer-dashboard', icon: GridIcon, label: 'Dashboard' },
-            { href: '/singer-dashboard', icon: MusicIcon, label: 'Songs' },
-            { href: '/singer-dashboard', icon: ChartIcon, label: 'Stats' },
-            { href: '/singer-dashboard?tab=profile', icon: SettingsIcon, label: 'Profile' },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              title={item.label}
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition"
-            >
-              <item.icon className="w-6 h-6" />
+      {/* Platform sidebar */}
+      <aside className="w-56 shrink-0 bg-musify-sidebar flex flex-col border-r border-white/10">
+        <div className="p-4 border-b border-white/10">
+          <Link href="/singer-dashboard" className="flex items-center gap-2">
+            <span className="text-xl font-bold text-white">Musify</span>
+          </Link>
+        </div>
+        <nav className="flex-1 py-4 px-3">
+          <p className="px-3 py-1.5 text-xs font-medium text-musify-text-muted uppercase tracking-wider">Main Menu</p>
+          <div className="space-y-0.5 mt-1">
+            <Link href="/singer-dashboard" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${!['songs','streams','profile'].includes(activeNav) ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <GridIcon className="h-4 w-4" />
+              </div>
+              Dashboard
             </Link>
-          ))}
+            <Link href="/singer-dashboard?nav=songs" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'songs' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <MusicIcon className="h-4 w-4" />
+              </div>
+              Songs
+            </Link>
+            <Link href="/singer-dashboard?nav=streams" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'streams' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <ChartIcon className="h-4 w-4" />
+              </div>
+              Analytics
+            </Link>
+            <Link href="/singer-dashboard?nav=profile" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'profile' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <SettingsIcon className="h-4 w-4" />
+              </div>
+              Profile
+            </Link>
+          </div>
+          <p className="px-3 py-1.5 text-xs font-medium text-musify-text-muted uppercase tracking-wider mt-6">Support</p>
+          <div className="space-y-0.5 mt-1">
+            <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/5 hover:text-white transition">
+              <BackIcon className="h-4 w-4" />
+              Back to App
+            </Link>
+          </div>
         </nav>
-        <Link href="/" className="mt-auto p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition" title="Back to Musify">
-          <BackIcon size="lg" />
-        </Link>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-musify-dark/95 backdrop-blur border-b border-white/5 px-6 py-4">
+        {/* Platform header */}
+        <header className="sticky top-0 z-10 bg-musify-dark/95 backdrop-blur border-b border-white/10 px-6 py-3">
           <div className="flex items-center justify-between gap-4">
-            <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 text-sm font-medium transition">
-              <BackIcon size="sm" />
-              Back
-            </Link>
-            <nav className="flex items-center gap-1">
-              <Link
-                href="/singer-dashboard?tab=profile"
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-                  activeTab === 'profile' ? 'bg-musify-card text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                Profile
-              </Link>
-              <Link
-                href="/singer-dashboard"
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-                  activeTab === 'dashboard' ? 'bg-musify-card text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                Dashboard
-              </Link>
-            </nav>
-            <div className="flex items-center gap-2">
-              <button className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition">
-                <BellIcon size="md" />
-              </button>
-              <Link href="/profile" className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition">
-                <SettingsIcon size="md" />
-              </Link>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                {['Dashboard', 'Songs', 'Analytics'].map((tab, i) => (
+                  <Link key={tab} href={i === 0 ? '/singer-dashboard' : i === 1 ? '/singer-dashboard?nav=songs' : '/singer-dashboard?nav=streams'} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${(i === 0 && !['songs','streams','profile'].includes(activeNav)) || (i === 1 && activeNav === 'songs') || (i === 2 && activeNav === 'streams') ? 'bg-musify-teal text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                    {tab}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 max-w-md mx-6">
+              <div className="relative">
+                <input type="text" placeholder="Search your music..." className="w-full pl-4 pr-4 py-2.5 rounded-xl bg-musify-dark border border-white/10 text-white placeholder-musify-text-muted focus:outline-none focus:ring-2 focus:ring-musify-teal/50 focus:border-musify-teal text-sm" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {activeNav === 'songs' && (
+                <button onClick={() => setShowUpload(!showUpload)} className="px-4 py-2 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition">
+                  {showUpload ? 'Cancel' : '+ Upload'}
+                </button>
+              )}
+              <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-white">{profile?.stageName || user?.name || 'Artist'}</p>
+                  <p className="text-xs text-musify-text-muted">{user?.email || ''}</p>
+                </div>
+                <Link href="/singer-dashboard?nav=profile" className="w-10 h-10 rounded-full bg-musify-teal/20 flex items-center justify-center text-musify-teal font-bold">
+                  {profile?.stageName?.[0]?.toUpperCase() || user?.name?.[0] || '?'}
+                </Link>
+              </div>
             </div>
           </div>
         </header>
 
         <div className="flex-1 p-6 overflow-auto">
-          {activeTab === 'profile' ? (
-            /* Profile tab - inside dashboard */
-            <div className="max-w-6xl mx-auto">
-              <h1 className="text-2xl font-bold text-white mb-8">Welcome in, {profile?.stageName || user?.name || 'Artist'}</h1>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="space-y-6">
-                  <div className="rounded-2xl bg-musify-card border border-white/10 overflow-hidden relative">
-                    <div className="p-6">
-                      <div className="relative inline-block">
-                        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-musify-teal to-musify-purple flex items-center justify-center text-4xl font-bold text-white overflow-hidden">
-                          {profile?.image ? <img src={profile.image} alt="" className="w-full h-full object-cover" /> : profile?.stageName?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || '?'}
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 px-3 py-1 rounded-full bg-musify-teal text-white text-sm font-semibold shadow-lg">{stats?.totalPlays ?? 0} plays</div>
-                      </div>
-                      <h2 className="text-xl font-bold text-white mt-4">{profile?.stageName || 'Artist'}</h2>
-                      <p className="text-white/60 text-sm">Artist · Musify</p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
-                    <h3 className="text-sm font-medium text-white/70 mb-4">Streams this week</h3>
-                    <div className="flex items-end gap-2 h-24">
-                      {weeklyStreams.map((val, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <div className="w-full rounded-t-lg min-h-[4px] transition-all" style={{ height: `${(val / maxStreams) * 80}px`, backgroundColor: i === 4 ? 'rgb(6, 182, 212)' : 'rgba(255,255,255,0.15)' }} />
-                          <span className="text-white/50 text-xs">{DAYS[i]}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-musify-teal text-sm font-medium mt-2">{weeklyStreams[4]} streams on Fri</p>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
-                    <div className="flex flex-col items-center">
-                      <div className="relative w-40 h-40">
-                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#06b6d4" strokeWidth="3" strokeDasharray={`${Math.min(100, ((stats?.totalPlays ?? 0) / 1000) * 10)} 100`} strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <p className="text-2xl font-bold text-white">{stats?.totalPlays ?? 0}</p>
-                          <p className="text-white/50 text-sm">Total Streams</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-4 mt-4">
-                        <button className="p-2 rounded-full bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30 transition"><PlayIcon size="md" /></button>
-                        <button className="p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/15 transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg></button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-2xl bg-musify-card border border-white/10 p-4">
-                      <p className="text-white/60 text-sm">Songs</p>
-                      <p className="text-2xl font-bold text-white">{stats?.totalSongs ?? 0}</p>
-                    </div>
-                    <div className="rounded-2xl bg-musify-card border border-white/10 p-4">
-                      <p className="text-white/60 text-sm">Approved</p>
-                      <p className="text-2xl font-bold text-musify-teal">{stats?.approvedSongs ?? 0}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <div className="rounded-2xl bg-musify-darker border border-white/10 p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Onboarding Tasks</h3>
-                    <div className="space-y-4">
-                      {profileTasks.map((t) => (
-                        <div key={t.id} className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${t.done ? 'bg-musify-teal/30 text-musify-teal' : 'bg-white/10 text-white/40'}`}>
-                            {t.done ? <CheckCircleIcon size="sm" /> : <div className="w-2 h-2 rounded-full bg-white/40" />}
-                          </div>
-                          <p className={`text-sm font-medium ${t.done ? 'text-white/70 line-through' : 'text-white'}`}>{t.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href="/singer-dashboard" className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30 text-sm font-medium transition">Task <ChevronUpIcon size="sm" className="rotate-90" /></Link>
-                  </div>
-                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-white">Calendar</h3>
-                      <button className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5"><ChevronUpIcon size="sm" className="rotate-90" /></button>
-                    </div>
-                    <p className="text-white/50 text-sm mb-3">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
-                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => <span key={d} className="text-white/50 font-medium py-1">{d}</span>)}
-                      {(() => {
-                        const today = new Date();
-                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
-                        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-                        const cells: Array<{ day: number; isCurrentMonth: boolean }> = [];
-                        for (let i = 0; i < firstDay; i++) cells.push({ day: 0, isCurrentMonth: false });
-                        for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, isCurrentMonth: true });
-                        while (cells.length < 42) cells.push({ day: 0, isCurrentMonth: false });
-                        return cells.slice(0, 35).map(({ day, isCurrentMonth }, i) => (
-                          <span key={i} className={`py-1.5 rounded-lg ${isCurrentMonth ? (day === today.getDate() ? 'bg-musify-teal text-white font-semibold' : 'text-white hover:bg-white/5') : 'text-white/30'}`}>{day || ''}</span>
-                        ));
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column: Cards + Recent Activity */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Cards - Reference design */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-white">Cards</h2>
-                  <button
-                    onClick={() => setShowUpload(!showUpload)}
-                    className="text-musify-teal hover:text-musify-accent-hover text-sm font-medium"
-                  >
-                    {showUpload ? 'Cancel' : '+ Upload Song'}
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl bg-musify-card border border-white/10 p-6 text-white shadow-lg overflow-hidden relative">
-                    <button className="absolute top-4 right-4 p-1 rounded-lg text-white/50 hover:text-white/80">
-                      <MoreVerticalIcon size="sm" />
-                    </button>
-                    <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
-                    <p className="text-white/70 text-sm mb-1">Total Plays</p>
-                    <p className="text-2xl font-bold">{stats?.totalPlays ?? 0}</p>
-                    <p className="text-white/50 text-xs mt-2">All time streams</p>
-                  </div>
-                  <div className="rounded-2xl bg-musify-card border border-musify-teal/30 p-6 shadow-lg overflow-hidden relative">
-                    <button className="absolute top-4 right-4 p-1 rounded-lg text-white/50 hover:text-white/80">
-                      <MoreVerticalIcon size="sm" />
-                    </button>
-                    <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%2306b6d4\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
-                    <p className="text-white/70 text-sm mb-1">Total Songs</p>
-                    <p className="text-2xl font-bold text-white">{stats?.totalSongs ?? 0}</p>
-                    <p className="text-white/50 text-xs mt-2">In your catalog</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  {[
-                    { label: 'Upload', icon: UploadIcon, primary: true },
-                    { label: 'Songs', icon: MusicIcon, primary: false },
-                    { label: 'Stats', icon: ChartIcon, primary: false },
-                    { label: 'Profile', icon: SettingsIcon, primary: false },
-                  ].map((a) => (
-                    <Link
-                      key={a.label}
-                      href={a.label === 'Upload' ? '#' : a.label === 'Profile' ? '/singer-dashboard?tab=profile' : '/singer-dashboard'}
-                      onClick={a.label === 'Upload' ? () => setShowUpload(true) : undefined}
-                      className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl transition ${
-                        a.primary
-                          ? 'bg-musify-teal/30 hover:bg-musify-teal/40 text-white border border-musify-teal/40'
-                          : 'bg-white/5 hover:bg-white/10 text-white/90 border border-white/10'
-                      }`}
-                    >
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        a.primary ? 'bg-musify-teal/40' : 'bg-white/10'
-                      }`}>
-                        <a.icon className={a.primary ? 'w-6 h-6 text-white' : 'w-5 h-5 text-white/80'} size={a.primary ? 'lg' : 'md'} />
-                      </div>
-                      <span className="text-xs font-medium">{a.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-
-              {/* Upload form */}
+          {/* SONGS PAGE: Upload form + songs list */}
+          {activeNav === 'songs' && (
+            <>
               {showUpload && (
-                <form onSubmit={handleUpload} className="p-6 rounded-2xl bg-musify-card border border-white/10 shadow-xl space-y-4">
-                  <h3 className="text-lg font-semibold text-white">New Song</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input placeholder="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50" />
-                    <input placeholder="Artist" value={form.artist} onChange={(e) => setForm((f) => ({ ...f, artist: e.target.value }))} required className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50" />
-                    <input placeholder="Genre" value={form.genre} onChange={(e) => setForm((f) => ({ ...f, genre: e.target.value }))} className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50" />
-                    <input type="number" placeholder="Duration (seconds)" value={form.duration} onChange={(e) => setForm((f) => ({ ...f, duration: parseInt(e.target.value) || 0 }))} className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50" />
+                <form onSubmit={handleUpload} className="mb-8 p-8 rounded-3xl upload-card space-y-6">
+                  <div className="flex items-center gap-3 pb-4 border-b border-white/10">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">New Song</h3>
+                      <p className="text-sm text-musify-text-muted">Upload your track and cover art</p>
+                    </div>
                   </div>
-                  <input placeholder="Audio URL" value={form.audioUrl} onChange={(e) => setForm((f) => ({ ...f, audioUrl: e.target.value }))} required className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50" />
-                  <button type="submit" className="px-6 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium transition">Upload</button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-2">Song Name</label>
+                      <input placeholder="Enter song title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-2">Artist (you)</label>
+                      <input value={form.artist || profile?.stageName || ''} readOnly placeholder="Your stage name" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/90 cursor-not-allowed" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-white/90 mb-2">Category</label>
+                      <select value={form.genre} onChange={(e) => setForm((f) => ({ ...f, genre: e.target.value }))} className="w-full px-4 py-3 rounded-xl input-premium text-white focus:outline-none">
+                        <option value="">Select category</option>
+                        <option value="Pop">Pop</option>
+                        <option value="Rock">Rock</option>
+                        <option value="Hip-Hop">Hip-Hop</option>
+                        <option value="R&B">R&B</option>
+                        <option value="Jazz">Jazz</option>
+                        <option value="Electronic">Electronic</option>
+                        <option value="Classical">Classical</option>
+                        <option value="Country">Country</option>
+                        <option value="Reggae">Reggae</option>
+                        <option value="Latin">Latin</option>
+                        <option value="Metal">Metal</option>
+                        <option value="Indie">Indie</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="file-zone rounded-2xl p-6">
+                      <label className="flex flex-col items-center justify-center cursor-pointer gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-musify-teal/20 flex items-center justify-center">
+                          <svg className="w-7 h-7 text-musify-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-white">MP3 Song File</p>
+                          <p className="text-sm text-musify-text-muted mt-0.5">{audioFile ? audioFile.name : 'Click or drag to upload'}</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept=".mp3,.m4a,.wav,.ogg"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setAudioFile(file);
+                            if (file) {
+                              const audio = new Audio();
+                              audio.src = URL.createObjectURL(file);
+                              audio.onloadedmetadata = () => {
+                                setForm((f) => ({ ...f, duration: Math.round(audio.duration) || 180 }));
+                                URL.revokeObjectURL(audio.src);
+                              };
+                              audio.onerror = () => setForm((f) => ({ ...f, duration: 180 }));
+                            }
+                          }}
+                          required
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <div className="file-zone rounded-2xl p-6">
+                      <label className="flex flex-col items-center justify-center cursor-pointer gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-musify-purple/20 flex items-center justify-center">
+                          <svg className="w-7 h-7 text-musify-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-white">Cover Image</p>
+                          <p className="text-sm text-musify-text-muted mt-0.5">{imageFile ? imageFile.name : 'Optional · JPG, PNG'}</p>
+                        </div>
+                        <input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="hidden" />
+                      </label>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <button type="submit" disabled={uploading} className="px-8 py-3.5 rounded-xl btn-upload-premium text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                      {uploading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Uploading...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          Upload Song
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </form>
               )}
-
-              {/* Recent Sales - Reference design table */}
-              <section className="rounded-2xl bg-musify-card border border-white/10 shadow-xl overflow-hidden">
-                <h2 className="text-lg font-semibold text-white px-6 py-4 border-b border-white/10">Recent Sales</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-white/10 text-left">
-                        <th className="px-6 py-3 text-white/60 text-xs font-medium uppercase tracking-wider">Sender</th>
-                        <th className="px-6 py-3 text-white/60 text-xs font-medium uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-white/60 text-xs font-medium uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-white/60 text-xs font-medium uppercase tracking-wider text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {recentSongs.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="px-6 py-8 text-white/50 text-center">
-                            No songs yet. Upload your first track!
-                          </td>
-                        </tr>
-                      ) : (
-                        recentSongs.map((song) => (
-                          <tr key={song._id} className="hover:bg-white/5 transition group">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-musify-teal/20 flex items-center justify-center text-musify-teal font-bold shrink-0">
-                                  {song.title?.[0]?.toUpperCase() || '?'}
-                                </div>
-                                <span className="font-medium text-white">{song.title}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-white/60 text-sm">{formatDate(song.createdAt)}</td>
-                            <td className="px-6 py-4">
-                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                                song.isApproved ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${song.isApproved ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                                {song.isApproved ? 'Success' : 'Pending'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <span className="font-medium text-white">-{song.playCount || 0} plays</span>
-                                <button
-                                  onClick={async () => {
-                                    if (confirm('Delete this song?')) {
-                                      await singerService.deleteSong(song._id);
-                                      singerService.getMySongs().then(({ data }) => setSongs(data as Song[]));
-                                      singerService.getStats().then(({ data }) => setStats(data as Stats));
-                                    }
-                                  }}
-                                  className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition"
-                                >
-                                  <DeleteIcon size="sm" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-
-            {/* Right column: Statistic - Reference design */}
-            <div className="space-y-6">
-              <div className="rounded-2xl bg-musify-card border border-white/10 shadow-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-white">Statistic</h2>
-                    <button className="p-1 rounded-lg text-white/40 hover:text-white/70">
-                      <InfoIcon size="sm" />
-                    </button>
+              <div className="rounded-3xl upload-card p-6">
+                <h3 className="text-lg font-bold text-white mb-5">Your Songs</h3>
+                {songs.length === 0 ? (
+                  <div className="py-16 text-center rounded-2xl border border-dashed border-white/10 bg-white/5">
+                    <p className="text-musify-text-muted">No songs yet. Click &quot;+ Upload&quot; to add your first track.</p>
                   </div>
-                  <button className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-sm">
-                    This week
-                    <ChevronDownIcon size="xs" />
-                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    {songs.map((song) => (
+                      <div key={song._id} className="flex items-center gap-4 p-4 rounded-2xl song-card-premium group">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center shrink-0">
+                          <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-white truncate">{song.title}</p>
+                          <p className="text-musify-text-muted text-sm">{song.artist} · {(song.playCount || 0).toLocaleString()} plays</p>
+                        </div>
+                        <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${song.isApproved ? 'bg-musify-teal/20 text-musify-teal' : 'bg-amber-500/20 text-amber-400'}`}>{song.isApproved ? 'Live' : 'Pending'}</span>
+                        <button onClick={async () => { if (confirm('Delete this song?')) { await singerService.deleteSong(song._id); singerService.getMySongs().then(({ data }) => setSongs(data as Song[])); singerService.getStats().then(({ data }) => setStats(data as Stats)); } }} className="p-2.5 rounded-xl text-white/40 hover:text-musify-pink hover:bg-musify-pink/10 opacity-0 group-hover:opacity-100 transition">
+                          <DeleteIcon size="sm" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* STATISTICS PAGE: Song statistics */}
+          {activeNav === 'streams' && (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {kpis.map((kpi, i) => (
+                  <div key={i} className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                    <p className="text-sm font-medium text-musify-text-muted mb-1">{kpi.label}</p>
+                    <p className="text-3xl font-bold text-white">{kpi.value}</p>
+                    {(kpi.change !== 0) && (
+                      <p className={`text-sm font-medium mt-2 flex items-center gap-1 ${kpi.positive ? 'text-musify-teal' : 'text-musify-pink'}`}>
+                        {kpi.positive ? <span>↑</span> : <span>↓</span>}+{kpi.change}% for 7 last days
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 rounded-2xl bg-musify-card border border-white/10 p-6">
+                  <p className="text-sm font-medium text-musify-text-muted mb-1">Song Plays</p>
+                  <p className="text-3xl font-bold text-white mb-1">{(stats?.totalPlays ?? 0).toLocaleString()}</p>
+                  <p className="text-sm font-medium text-musify-teal mb-6">+{weekTotal > 0 ? Math.round((weekTotal / 7) * 10) : 0}% for 7 last days</p>
+                  <div className="h-40">
+                    <svg viewBox="0 0 400 120" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                      <defs>
+                        <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.5" />
+                          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      {(() => {
+                        const w = 400; const h = 100; const pad = 10;
+                        const prevWeek = weeklyStreams.map((v) => Math.max(0, Math.floor(v * 0.75)));
+                        const maxVal = Math.max(...weeklyStreams, ...prevWeek, 1);
+                        const pts1 = weeklyStreams.map((v, i) => ({ x: pad + (i / (DAYS.length - 1)) * (w - 2 * pad), y: (v / maxVal) * (h - 2 * pad) }));
+                        const chartH = h - pad;
+                        return (
+                          <>
+                            <path d={smoothPath(pts1, chartH) + ' L ' + pts1[pts1.length - 1].x + ' ' + chartH + ' L ' + pts1[0].x + ' ' + chartH + ' Z'} fill="url(#blueGrad)" />
+                            <path d={smoothPath(pts1, chartH)} fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="neon-teal" />
+                            {DAYS.map((d, i) => (
+                              <text key={d} x={pad + (i / (DAYS.length - 1)) * (w - 2 * pad)} y={115} fill="rgba(255,255,255,0.5)" fontSize="10" textAnchor="middle">{d}</text>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </svg>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center">
-                  <div className="relative w-48 h-48">
+                <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Approval status</h3>
+                  <div className="relative w-40 h-40 mx-auto">
                     <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="rgba(255,255,255,0.1)"
-                        strokeWidth="3"
-                      />
-                      {stats?.totalSongs ? (
-                        <>
-                          <path
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                            fill="none"
-                            stroke="#06b6d4"
-                            strokeWidth="3"
-                            strokeDasharray={`${approvedPct} ${100 - approvedPct}`}
-                            strokeLinecap="round"
-                          />
-                          {pendingPct > 0 && (
-                            <path
-                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                              fill="none"
-                              stroke="#8b5cf6"
-                              strokeWidth="3"
-                              strokeDasharray={`${pendingPct} ${100 - pendingPct}`}
-                              strokeDashoffset={-approvedPct}
-                              strokeLinecap="round"
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <path
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          fill="none"
-                          stroke="rgba(255,255,255,0.2)"
-                          strokeWidth="3"
-                        />
-                      )}
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#06b6d4" strokeWidth="3" strokeDasharray={`${approvedPct} ${100 - approvedPct}`} strokeLinecap="round" className="neon-teal" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-2xl font-bold text-white">{stats?.totalSongs ?? 0}</p>
-                      <p className="text-white/50 text-sm">Total Songs</p>
+                      <p className="text-2xl font-bold text-white">{approvedPct}%</p>
+                      <p className="text-musify-text-muted text-xs">Approved</p>
                     </div>
                   </div>
-                  <div className="flex gap-6 mt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-musify-teal" />
-                      <span className="text-white/70 text-sm">Approved</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-musify-purple" />
-                      <span className="text-white/70 text-sm">Pending</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-6 space-y-3">
-                  {(stats?.topSongs ?? []).slice(0, 4).map((song) => (
-                    <div key={song._id} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-musify-teal/20 flex items-center justify-center">
-                          <PlayIcon className="text-musify-teal" size="md" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white text-sm">{song.title}</p>
-                          <p className="text-white/50 text-xs">{song.playCount || 0} plays</p>
-                        </div>
-                      </div>
-                      <span className="text-white/70 font-medium text-sm">-{song.playCount || 0}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
+            </>
+          )}
+
+          {/* DASHBOARD (overview): Song statistics - platform design */}
+          {!['songs', 'streams', 'profile'].includes(activeNav) && (
+            <>
+              {/* Welcome banner */}
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-white">Welcome, {profile?.stageName || user?.name || 'Artist'}</h2>
+                <p className="text-musify-text-muted mt-1">Here&apos;s your music portfolio overview</p>
+              </div>
+
+              {/* Total Song Plays card - with subtle texture */}
+              <div className="rounded-2xl bg-musify-card border border-white/10 p-6 mb-6 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(ellipse 80% 50% at 0% 0%, #06b6d4, transparent 60%)' }} />
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <p className="text-musify-text-muted text-sm mb-1">Total Song Plays</p>
+                    <p className="text-4xl font-bold text-white">{totalPlays.toLocaleString()}</p>
+                    <p className="text-sm mt-2 flex items-center gap-1">
+                      <span className="text-musify-teal">↑ Return +{weekTotal > 0 ? Math.round((weekTotal / 7) * 10) : 0}%</span>
+                      <span className="text-musify-text-muted">({weekTotal.toLocaleString()} this week)</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    {(['1D','1W','1M','6M','1Y'] as const).map((p) => (
+                      <button key={p} onClick={() => setChartPeriod(p)} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${chartPeriod === p ? 'bg-musify-teal text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{p}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* My Portfolio - song cards */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">My Portfolio</h3>
+                <Link href="/singer-dashboard?nav=songs" className="text-sm text-musify-teal hover:underline">See all</Link>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                {portfolioSongs.length === 0 ? (
+                  <div className="col-span-full rounded-2xl bg-musify-card border border-white/10 p-8 text-center">
+                    <p className="text-musify-text-muted">No songs yet. <Link href="/singer-dashboard?nav=songs" className="text-musify-teal hover:underline">Upload your first track</Link></p>
+                  </div>
+                ) : (
+                  portfolioSongs.map((song) => (
+                    <div key={song._id} className="rounded-2xl bg-musify-card border border-white/10 p-4">
+                      <div className="w-12 h-12 rounded-xl bg-musify-teal/20 flex items-center justify-center mb-3">
+                        <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      </div>
+                      <p className="font-semibold text-white truncate">{song.title}</p>
+                      <p className="text-musify-teal text-sm mt-1">+{(song.playCount || 0) > 0 ? '12' : '0'}%</p>
+                      <p className="text-musify-text-muted text-xs mt-1">{song.artist}</p>
+                      <p className="text-musify-text-muted text-xs">{(song.playCount || 0).toLocaleString()} plays</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Portfolio Performance chart */}
+              <div className="rounded-2xl bg-musify-card border border-white/10 p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Song Performance</h3>
+                  <div className="flex gap-1">
+                    {(['1D','1W','1M','6M','1Y'] as const).map((p) => (
+                      <button key={p} onClick={() => setChartPeriod(p)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${chartPeriod === p ? 'bg-musify-teal text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{p}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-48">
+                  <svg viewBox="0 0 400 120" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                      <linearGradient id="dashBlueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.5" />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {(() => {
+                      const w = 400; const h = 100; const pad = 10;
+                      const maxVal = Math.max(...weeklyStreams, 1);
+                      const pts1 = weeklyStreams.map((v, i) => ({ x: pad + (i / (DAYS.length - 1)) * (w - 2 * pad), y: (v / maxVal) * (h - 2 * pad) }));
+                      const chartH = h - pad;
+                      const peakIdx = weeklyStreams.indexOf(Math.max(...weeklyStreams));
+                      const peak = pts1[peakIdx];
+                      return (
+                        <>
+                          <path d={smoothPath(pts1, chartH) + ' L ' + pts1[pts1.length - 1].x + ' ' + chartH + ' L ' + pts1[0].x + ' ' + chartH + ' Z'} fill="url(#dashBlueGrad)" />
+                          <path d={smoothPath(pts1, chartH)} fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="neon-teal" />
+                          {peak && <circle cx={peak.x} cy={chartH - peak.y} r="5" fill="white" className="neon-blue" />}
+                          {DAYS.map((d, i) => (
+                            <text key={d} x={pad + (i / (DAYS.length - 1)) * (w - 2 * pad)} y={115} fill="rgba(255,255,255,0.5)" fontSize="10" textAnchor="middle">{d}</text>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Portfolio Overview table + Watchlist */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 rounded-2xl bg-musify-card border border-white/10 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Portfolio Overview</h3>
+                    <div className="flex gap-1">
+                      {(['all','gainers','losers'] as const).map((f) => (
+                        <button key={f} onClick={() => setTableFilter(f)} className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition ${tableFilter === f ? 'bg-musify-teal text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{f}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-musify-text-muted text-left border-b border-white/5">
+                          <th className="pb-3 font-medium">Song</th>
+                          <th className="pb-3 font-medium">Plays</th>
+                          <th className="pb-3 font-medium">Change</th>
+                          <th className="pb-3 font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topSongs.length === 0 ? (
+                          <tr><td colSpan={4} className="py-8 text-center text-musify-text-muted">No songs yet</td></tr>
+                        ) : (
+                          topSongs.map((song) => (
+                          <tr key={song._id} className="border-b border-white/5 last:border-0">
+                            <td className="py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-musify-teal/20 flex items-center justify-center shrink-0">
+                                  <svg className="w-4 h-4 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-white">{song.title}</p>
+                                  <p className="text-musify-text-muted text-xs">{song.artist}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 text-white">{(song.playCount || 0).toLocaleString()}</td>
+                            <td className="py-3 text-musify-teal">+{(song.playCount || 0) > 0 ? '12' : '0'}%</td>
+                            <td className="py-3">
+                              <span className={`text-xs px-2 py-0.5 rounded ${song.isApproved ? 'bg-musify-teal/20 text-musify-teal' : 'bg-amber-500/20 text-amber-400'}`}>{song.isApproved ? 'Live' : 'Pending'}</span>
+                            </td>
+                          </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Watchlist</h3>
+                    <div className="flex gap-1">
+                      {(['most','gainers','losers'] as const).map((f) => (
+                        <button key={f} onClick={() => setWatchFilter(f)} className={`px-2 py-1 rounded-lg text-xs font-medium capitalize transition ${watchFilter === f ? 'bg-musify-teal text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{f === 'most' ? 'Most Viewed' : f}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {topSongs.slice(0, 4).map((song) => (
+                      <div key={song._id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition">
+                        <div className="w-10 h-10 rounded-lg bg-musify-teal/20 flex items-center justify-center shrink-0">
+                          <svg className="w-5 h-5 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white truncate">{song.title}</p>
+                          <p className="text-musify-text-muted text-xs">{song.artist}</p>
+                        </div>
+                        <span className="text-musify-teal text-sm font-medium">+{(song.playCount || 0) > 0 ? '12' : '0'}%</span>
+                      </div>
+                    ))}
+                    {topSongs.length === 0 && (
+                      <p className="text-musify-text-muted text-sm py-4 text-center">No songs in watchlist</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* PROFILE PAGE */}
+          {activeNav === 'profile' && (
+            <div className="rounded-2xl bg-musify-card border border-white/10 p-8 text-center">
+              <div className="w-20 h-20 rounded-full bg-musify-teal/20 flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl font-bold text-musify-teal">{profile?.stageName?.[0]?.toUpperCase() || '?'}</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">{profile?.stageName || 'Artist'}</h3>
+              <p className="text-musify-text-muted text-sm">{user?.email}</p>
             </div>
-          </div>
           )}
         </div>
       </main>

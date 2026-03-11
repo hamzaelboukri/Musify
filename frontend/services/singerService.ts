@@ -1,6 +1,16 @@
 import { api } from './api';
 
 export const singerService = {
+  uploadAudio: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string }>('/upload/audio', formData);
+  },
+  uploadImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string }>('/upload/image', formData);
+  },
   apply: (data: { stageName: string; bio?: string }) => api.post('/singers/apply', data),
   getMyProfile: () => api.get('/singers/me'),
   getAll: () => api.get('/singers'),

@@ -36,6 +36,13 @@ export default function PlaylistsPage() {
     setCreating(false);
   };
 
+  const deletePlaylist = async (playlistId: string) => {
+    try {
+      await playlistService.delete(playlistId);
+      setPlaylists((p) => (p as { _id: string }[]).filter((pl) => pl._id !== playlistId));
+    } catch {}
+  };
+
   if (loading) return <div className="p-8 text-center text-white/60">Loading...</div>;
 
   const playlistList = playlists as { _id: string; name: string; songs?: unknown[] }[];
@@ -72,7 +79,7 @@ export default function PlaylistsPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {playlistList.map((p) => (
-            <PlaylistCard key={p._id} playlist={p} />
+            <PlaylistCard key={p._id} playlist={p} onDelete={deletePlaylist} />
           ))}
         </div>
       )}

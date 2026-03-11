@@ -5,6 +5,7 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -28,6 +29,40 @@ module.exports = {
           'admin-sidebar': '#f4f4f5',
           'admin-bg': '#fafafa',
           'admin-card': '#ffffff',
+          // Podcaster-style (singer dashboard - dark green theme)
+          podcaster: {
+            bg: '#0f1414',
+            sidebar: '#121A1A',
+            card: '#1A2525',
+            accent: '#00FF80',
+            'accent-dim': '#00cc66',
+            negative: '#FF0057',
+            muted: '#6b7b7b',
+          },
+          // Premium Dark / Neon-Dark (singer dashboard)
+          premium: {
+            bg: '#0D0D0F',
+            'bg-alt': '#111114',
+            sidebar: '#121215',
+            card: '#1A1A1E',
+            'card-elevated': '#1E1E24',
+            accent: '#007BFF',
+            'accent-glow': '#00A3FF',
+            positive: '#00E676',
+            negative: '#FF5252',
+            muted: '#9CA3AF',
+          },
+          // Bento / dappr-style (singer dashboard)
+          bento: {
+            bg: '#eef1f5',
+            'bg-card': '#e4e8ed',
+            'bg-elevated': '#ffffff',
+            dark: '#1a1d21',
+            'dark-card': '#252930',
+            positive: '#22c55e',
+            negative: '#f43f5e',
+            muted: '#64748b',
+          },
         },
       },
       fontFamily: {
