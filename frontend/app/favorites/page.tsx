@@ -38,6 +38,7 @@ export default function FavoritesPage() {
           <SongCard
             key={song._id}
             song={song as Parameters<typeof SongCard>[0]['song']}
+            queue={songs as Parameters<typeof SongCard>[0]['song'][]}
             onFavorite={removeFavorite}
             isFavorite
           />

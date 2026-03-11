@@ -313,7 +313,14 @@ export default function ProfilePage() {
                 return (
                   <div
                     key={`${h.playedAt}-${i}`}
-                    onClick={() => play({ _id: song._id, title: song.title ?? 'Unknown', artist: song.artist ?? '', coverImage: song.coverImage, audioUrl: song.audioUrl ?? '', duration: song.duration ?? 0 })}
+                    onClick={() => {
+                      const s = { _id: song._id, title: song.title ?? 'Unknown', artist: song.artist ?? '', coverImage: song.coverImage, audioUrl: song.audioUrl ?? '', duration: song.duration ?? 0 };
+                      const queue = history.map((x) => x.songId).filter(Boolean).map((sng: unknown) => {
+                        const sn = sng as { _id: string; title?: string; artist?: string; coverImage?: string; audioUrl?: string; duration?: number };
+                        return { _id: sn._id, title: sn.title ?? 'Unknown', artist: sn.artist ?? '', coverImage: sn.coverImage, audioUrl: sn.audioUrl ?? '', duration: sn.duration ?? 0 };
+                      });
+                      play(s, queue);
+                    }}
                     className="flex items-center gap-4 p-4 rounded-xl bg-musify-card/60 border border-white/5 hover:bg-white/5 hover:border-musify-teal/20 transition-all cursor-pointer group"
                   >
                     <img

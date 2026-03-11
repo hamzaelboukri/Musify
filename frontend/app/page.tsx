@@ -117,6 +117,7 @@ export default function HomePage() {
                 <SongCard
                   key={song._id}
                   song={song}
+                  queue={searchResults.slice(0, 10)}
                   onFavorite={user ? (id) => toggleFavorite(id, favorites.has(id)) : undefined}
                   isFavorite={favorites.has(song._id)}
                 />
@@ -224,7 +225,7 @@ export default function HomePage() {
                         <p className="text-white/50 text-xs">{formatPlays(song.playCount || 0)} plays · {formatDuration(song.duration)}</p>
                       </div>
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); play(song); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); play(song, topHits); }}
                         className="p-2 rounded-lg text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition"
                       >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

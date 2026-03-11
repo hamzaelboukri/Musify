@@ -16,11 +16,12 @@ type Song = {
 
 type SongCardProps = {
   song: Song;
+  queue?: Song[];
   onFavorite?: (songId: string) => void;
   isFavorite?: boolean;
 };
 
-export function SongCard({ song, onFavorite, isFavorite }: SongCardProps) {
+export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps) {
   const { play, currentSong, isPlaying } = usePlayer();
   const addToPlaylist = useAddToPlaylist();
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export function SongCard({ song, onFavorite, isFavorite }: SongCardProps) {
   return (
     <div
       className="group p-4 rounded-xl bg-musify-card hover:bg-white/5 transition cursor-pointer"
-      onClick={() => play(song)}
+      onClick={() => play(song, queue)}
     >
       <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
         <img

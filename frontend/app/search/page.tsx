@@ -119,6 +119,7 @@ export default function SearchPage() {
             <SongCard
               key={song._id}
               song={song}
+              queue={songs}
               onFavorite={user ? (favorites.has(song._id) ? removeFavorite : addFavorite) : undefined}
               isFavorite={favorites.has(song._id)}
             />

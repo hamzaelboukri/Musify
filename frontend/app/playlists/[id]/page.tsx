@@ -59,6 +59,7 @@ export default function PlaylistDetailPage() {
           <div key={song._id} className="relative">
             <SongCard
               song={song as Parameters<typeof SongCard>[0]['song']}
+              queue={(playlist.songs || []) as Parameters<typeof SongCard>[0]['song'][]}
               onFavorite={user ? () => {} : undefined}
               isFavorite={favorites.has(song._id)}
             />
