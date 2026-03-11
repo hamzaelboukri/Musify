@@ -16,7 +16,7 @@ export default function PlaylistDetailPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/');
+    if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
   useEffect(() => {

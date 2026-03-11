@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useState, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { streamService } from '@/services/streamService';
 import { favoriteService } from '@/services/favoriteService';
 
@@ -30,24 +30,23 @@ type PlayerContextType = {
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
 
-function getDeviceId() {
-  if (typeof window === 'undefined') return 'web';
-  let id = localStorage.getItem('musify_device_id');
-  if (!id) {
-    id = 'web_' + Math.random().toString(36).slice(2) + Date.now();
-    localStorage.setItem('musify_device_id', id);
-  }
-  return id;
-}
-
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [queue, setQueue] = useState<Song[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
+  const [deviceId, setDeviceId] = useState('web');
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const deviceId = getDeviceId();
+
+  useEffect(() => {
+    let id = localStorage.getItem('musify_device_id');
+    if (!id) {
+      id = 'web_' + Math.random().toString(36).slice(2) + Date.now();
+      localStorage.setItem('musify_device_id', id);
+    }
+    setDeviceId(id);
+  }, []);
 
   const startStreamSession = useCallback(async () => {
     const token = localStorage.getItem('accessToken');
@@ -174,19 +173,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-      {typeof window !== 'undefined' && (
-        <audio
-          ref={(el) => {
-            audioRef.current = el;
-            if (el) {
-              el.onended = next;
-              el.ontimeupdate = () => {
-                if (el.duration) setProgress((el.currentTime / el.duration) * 100);
-              };
-            }
-          }}
-        />
-      )}
+      <audio
+        ref={(el) => {
+          audioRef.current = el;
+          if (el) {
+            el.onended = next;
+            el.ontimeupdate = () => {
+              if (el.duration) setProgress((el.currentTime / el.duration) * 100);
+            };
+          }
+        }}
+      />
     </PlayerContext.Provider>
   );
 }

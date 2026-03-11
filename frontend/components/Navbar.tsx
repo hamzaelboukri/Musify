@@ -38,7 +38,7 @@ export function Navbar() {
           ) : (
             <Link
               href="/"
-              className="px-4 py-2 rounded-full bg-musify-accent hover:bg-musify-accent-hover text-black font-medium transition"
+              className="px-4 py-2 rounded-full bg-musify-accent hover:bg-cyan-400 text-black font-medium transition"
             >
               Login
             </Link>

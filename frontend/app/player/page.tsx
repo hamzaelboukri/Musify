@@ -11,7 +11,7 @@ export default function PlayerPage() {
   const { currentSong, queue } = usePlayer();
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/');
+    if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
   if (loading) return <div className="p-8 text-center text-white/60">Loading...</div>;
@@ -22,7 +22,7 @@ export default function PlayerPage() {
       {currentSong ? (
         <div className="text-center">
           <img
-            src={currentSong.coverImage || 'https://picsum.photos/400'}
+            src={currentSong.coverImage || '/placeholder.svg'}
             alt={currentSong.title}
             className="w-64 h-64 mx-auto rounded-2xl object-cover mb-6 shadow-xl"
           />
@@ -39,7 +39,7 @@ export default function PlayerPage() {
             {queue.map((s, i) => (
               <div key={s._id} className="flex items-center gap-3 p-3 rounded-lg bg-musify-card">
                 <span className="text-white/60 w-6">{i + 1}</span>
-                <img src={s.coverImage || 'https://picsum.photos/48'} alt="" className="w-10 h-10 rounded" />
+                <img src={s.coverImage || '/placeholder.svg'} alt="" className="w-10 h-10 rounded" />
                 <div>
                   <p className="text-white font-medium">{s.title}</p>
                   <p className="text-sm text-white/60">{s.artist}</p>

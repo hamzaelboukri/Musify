@@ -33,7 +33,7 @@ api.interceptors.response.use(
         } catch {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
-          if (typeof window !== 'undefined' && !window.location.pathname.match(/^\/(register)?$/)) {
+          if (typeof window !== 'undefined' && !window.location.pathname.match(/^\/(login|register)?$/)) {
             window.location.href = '/';
           }
         }

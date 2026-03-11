@@ -29,14 +29,16 @@ export class PlaylistsService {
   async update(id: string, userId: string, name: string) {
     const playlist = await this.playlistModel.findById(id);
     if (!playlist) throw new NotFoundException('Playlist not found');
-    if (playlist.userId.toString() !== userId) throw new ForbiddenException('Not your playlist');
+    const uid = String(userId ?? '');
+    if (playlist.userId.toString() !== uid) throw new ForbiddenException('Not your playlist');
     return this.playlistModel.findByIdAndUpdate(id, { name }, { new: true });
   }
 
   async delete(id: string, userId: string) {
     const playlist = await this.playlistModel.findById(id);
     if (!playlist) throw new NotFoundException('Playlist not found');
-    if (playlist.userId.toString() !== userId) throw new ForbiddenException('Not your playlist');
+    const uid = String(userId ?? '');
+    if (playlist.userId.toString() !== uid) throw new ForbiddenException('Not your playlist');
     await this.playlistModel.findByIdAndDelete(id);
     return { message: 'Playlist deleted' };
   }
@@ -44,7 +46,8 @@ export class PlaylistsService {
   async addSong(playlistId: string, userId: string, songId: string) {
     const playlist = await this.playlistModel.findById(playlistId);
     if (!playlist) throw new NotFoundException('Playlist not found');
-    if (playlist.userId.toString() !== userId) throw new ForbiddenException('Not your playlist');
+    const uid = String(userId ?? '');
+    if (playlist.userId.toString() !== uid) throw new ForbiddenException('Not your playlist');
     return this.playlistModel.findByIdAndUpdate(
       playlistId,
       { $addToSet: { songs: new Types.ObjectId(songId) } },
@@ -55,7 +58,8 @@ export class PlaylistsService {
   async removeSong(playlistId: string, userId: string, songId: string) {
     const playlist = await this.playlistModel.findById(playlistId);
     if (!playlist) throw new NotFoundException('Playlist not found');
-    if (playlist.userId.toString() !== userId) throw new ForbiddenException('Not your playlist');
+    const uid = String(userId ?? '');
+    if (playlist.userId.toString() !== uid) throw new ForbiddenException('Not your playlist');
     return this.playlistModel.findByIdAndUpdate(
       playlistId,
       { $pull: { songs: new Types.ObjectId(songId) } },

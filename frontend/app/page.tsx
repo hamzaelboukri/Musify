@@ -1,93 +1,288 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearch } from '@/contexts/SearchContext';
+import { songService } from '@/services/songService';
+import { AlbumCard } from '@/components/AlbumCard';
+import { SongCard } from '@/components/SongCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { favoriteService } from '@/services/favoriteService';
+import { usePlayer } from '@/contexts/PlayerContext';
 import Link from 'next/link';
 
-export default function LoginPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+const GENRES = ['All', 'Pop', 'Rock', 'Hip-hop', 'Jazz', 'Blues', 'Country', 'Electronic', 'Classical', 'R&B'];
+
+type Song = {
+  _id: string;
+  title: string;
+  artist: string;
+  album?: string;
+  coverImage?: string;
+  audioUrl: string;
+  duration: number;
+  playCount?: number;
+  genre?: string;
+};
+
+export default function HomePage() {
+  const { user } = useAuth();
+  const { searchQuery } = useSearch();
+  const { play, currentSong, isPlaying } = usePlayer();
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [searchResults, setSearchResults] = useState<Song[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [trending, setTrending] = useState<Song[]>([]);
+  const [newReleases, setNewReleases] = useState<Song[]>([]);
+  const [platformStats, setPlatformStats] = useState<{ totalStreams: number; totalDownloads: number }>({ totalStreams: 0, totalDownloads: 0 });
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [selectedGenre, setSelectedGenre] = useState('All');
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.replace('/home');
-      }
+    songService.getAll({ genre: selectedGenre === 'All' ? undefined : selectedGenre, limit: 50 }).then(({ data }) => setSongs(data as Song[]));
+    songService.getTrending(10).then(({ data }) => setTrending(data as Song[]));
+    songService.getNewReleases(8).then(({ data }) => setNewReleases(data as Song[]));
+    songService.getPlatformStats().then(({ data }) => setPlatformStats({ totalStreams: data.totalStreams ?? 0, totalDownloads: data.totalDownloads ?? 0 }));
+  }, [selectedGenre]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
     }
-  }, [user, loading, router]);
+    setSearchLoading(true);
+    const timer = setTimeout(() => {
+      songService.getAll({ search: searchQuery.trim(), limit: 50 }).then(({ data }) => {
+        setSearchResults((data as Song[]) || []);
+      }).finally(() => setSearchLoading(false));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-musify-accent">Loading...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (user) {
+      favoriteService.getAll().then(({ data }) => {
+        const ids = new Set((data as { _id?: string }[]).map((s) => s._id).filter(Boolean));
+        setFavorites(ids as Set<string>);
+      });
+    }
+  }, [user]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-4xl font-bold text-center text-musify-accent mb-8">Musify</h1>
-        <LoginForm />
-        <p className="text-center text-white/60 mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-musify-accent hover:underline">
-            Register
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function LoginForm() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const toggleFavorite = async (songId: string, isFav: boolean) => {
     try {
-      await login(email, password);
-      window.location.href = '/home';
-    } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
+      if (isFav) {
+        await favoriteService.remove(songId);
+        setFavorites((prev) => { const n = new Set(prev); n.delete(songId); return n; });
+      } else {
+        await favoriteService.add(songId);
+        setFavorites((prev) => new Set(prev).add(songId));
+      }
+    } catch {
+      /* ignore */
     }
   };
 
+  const topHits = trending.slice(0, 6);
+  const artists = Array.from(new Map(songs.map((s) => [s.artist, { name: s.artist, cover: s.coverImage }])).values()).slice(0, 6);
+
+  const formatPlays = (n: number) => (n >= 1000000 ? `${(n / 1000000).toFixed(1)}m` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : '0');
+  const formatDuration = (sec: number) => `${Math.floor(sec / 60)}.${(sec % 60).toString().padStart(2, '0')} min`;
+
+  const showSearchResults = searchQuery.trim().length > 0;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 rounded-lg bg-musify-accent hover:bg-musify-accent-hover text-black font-semibold transition disabled:opacity-50"
-      >
-        {loading ? 'Logging in...' : 'Login'}
-      </button>
-    </form>
+    <div className="min-h-full">
+      {/* Search results (when typing) */}
+      {showSearchResults && (
+        <div className="px-6 pt-6 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">
+              Search results for <span className="text-musify-teal">&quot;{searchQuery}&quot;</span>
+            </h2>
+            <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="text-musify-teal text-sm font-medium hover:underline">
+              See all →
+            </Link>
+          </div>
+          {searchLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 rounded-full border-2 border-musify-teal/40 border-t-musify-teal animate-spin" />
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="py-12 text-center rounded-2xl bg-musify-card/50 border border-white/5">
+              <p className="text-white/60">No results found</p>
+              <p className="text-white/40 text-sm mt-1">Try different keywords</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {searchResults.slice(0, 10).map((song) => (
+                <SongCard
+                  key={song._id}
+                  song={song}
+                  onFavorite={user ? (id) => toggleFavorite(id, favorites.has(id)) : undefined}
+                  isFavorite={favorites.has(song._id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Genre tabs */}
+      <div className="px-6 pt-6 pb-4">
+        <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+          {GENRES.map((g) => (
+            <button
+              key={g}
+              onClick={() => setSelectedGenre(g)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                selectedGenre === g ? 'bg-musify-teal text-white' : 'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'
+              }`}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: New Releases + Promo + Artists */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* New Releases */}
+            <section>
+              <h2 className="text-xl font-bold text-white mb-4">New Releases</h2>
+              <div className="flex overflow-x-auto gap-4 pb-4 -mx-2 scrollbar-hide">
+                {newReleases.map((song) => (
+                  <div key={song._id} className="flex-shrink-0 w-40">
+                    <AlbumCard song={song} />
+                    <p className="text-white/50 text-xs mt-1">{formatDuration(song.duration)}</p>
+                  </div>
+                ))}
+                {newReleases.length === 0 && (
+                  <p className="text-white/50 py-8">No songs yet</p>
+                )}
+              </div>
+            </section>
+
+            {/* Promo card */}
+            <div className="rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/30 border border-white/10 p-6 overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-white">Unlimited Downloads</h3>
+                  <p className="text-white/80 text-sm mt-2">Get Premier Membership for unlimited downloads and offline listening.</p>
+                  <button className="mt-4 px-6 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium transition">
+                    Subscribe
+                  </button>
+                </div>
+                <div className="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center">
+                  <svg className="w-16 h-16 text-musify-teal/50" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Artists */}
+            <section>
+              <h2 className="text-xl font-bold text-white mb-4">Artists</h2>
+              <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide">
+                {artists.map((a, i) => (
+                  <div key={i} className="flex-shrink-0 text-center">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-musify-teal to-musify-purple flex items-center justify-center text-white font-bold text-2xl mb-2">
+                      {a.name?.charAt(0) ?? '?'}
+                    </div>
+                    <p className="text-white/90 text-sm font-medium truncate w-20">{a.name}</p>
+                  </div>
+                ))}
+                {artists.length === 0 && <p className="text-white/50 text-sm">No artists yet</p>}
+              </div>
+            </section>
+          </div>
+
+          {/* Right: Top hits + Statistics */}
+          <div className="space-y-6">
+            {/* Top hits */}
+            <div className="rounded-2xl bg-musify-card border border-white/10 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white">Top hits</h2>
+                <Link href="/" className="text-musify-teal text-sm font-medium hover:underline">See more</Link>
+              </div>
+              <div className="space-y-3">
+                {topHits.map((song, i) => {
+                  const isCurrent = currentSong?._id === song._id;
+                  const albumHref = song.album
+                    ? `/album?album=${encodeURIComponent(song.album)}&artist=${encodeURIComponent(song.artist)}`
+                    : `/album?songId=${song._id}`;
+                  return (
+                    <Link
+                      key={song._id}
+                      href={albumHref}
+                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition group"
+                    >
+                      <img src={song.coverImage || '/placeholder.svg'} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium truncate">{song.title}</p>
+                        <p className="text-white/50 text-xs">{formatPlays(song.playCount || 0)} plays · {formatDuration(song.duration)}</p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); play(song); }}
+                        className="p-2 rounded-lg text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </button>
+                    </Link>
+                  );
+                })}
+                {topHits.length === 0 && <p className="text-white/50 text-sm py-4">No songs yet</p>}
+              </div>
+            </div>
+
+            {/* Statistics */}
+            <div className="rounded-2xl bg-musify-card border border-white/10 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white">Statistics</h2>
+                <Link href="/" className="text-musify-teal text-sm font-medium hover:underline">Explore</Link>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-musify-teal/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-musify-teal" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">{formatPlays(platformStats.totalStreams)}</p>
+                    <p className="text-white/50 text-xs">Streams</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-musify-purple/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-musify-purple" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">{platformStats.totalDownloads}</p>
+                    <p className="text-white/50 text-xs">Downloads</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-rose-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">{favorites.size}</p>
+                    <p className="text-white/50 text-xs">Likes</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

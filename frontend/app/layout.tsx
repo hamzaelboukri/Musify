@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PlayerProvider } from '@/contexts/PlayerContext';
-import { Navbar } from '@/components/Navbar';
-import { MusicPlayer } from '@/components/MusicPlayer';
+import { SearchProvider } from '@/contexts/SearchContext';
+import { AddToPlaylistProvider } from '@/components/AddToPlaylistDialog';
+import { AppShell } from '@/components/AppShell';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Musify - Music Streaming',
   description: 'Stream your favorite music',
+  icons: { icon: '/musify-logo.png' },
 };
 
 export default function RootLayout({
@@ -17,12 +19,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-musify-dark">
+      <body className="min-h-screen bg-[#0a0a0a]">
         <AuthProvider>
           <PlayerProvider>
-            <Navbar />
-            <main className="pt-16 pb-24 min-h-screen">{children}</main>
-            <MusicPlayer />
+            <SearchProvider>
+              <AddToPlaylistProvider>
+                <AppShell>{children}</AppShell>
+              </AddToPlaylistProvider>
+            </SearchProvider>
           </PlayerProvider>
         </AuthProvider>
       </body>

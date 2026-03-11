@@ -15,7 +15,7 @@ export default function PlaylistsPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/');
+    if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export default function PlaylistsPage() {
   if (loading) return <div className="p-8 text-center text-white/60">Loading...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-8">My Playlists</h1>
+    <div className="px-6 py-8 bg-gradient-to-b from-musify-teal/10 via-musify-purple/5 to-musify-dark min-h-full">
+      <h1 className="text-3xl font-bold text-white mb-8">My Playlists</h1>
       <form onSubmit={createPlaylist} className="flex gap-2 mb-8">
         <input
           type="text"
@@ -52,7 +52,7 @@ export default function PlaylistsPage() {
         <button
           type="submit"
           disabled={creating}
-          className="px-6 py-3 rounded-lg bg-musify-accent hover:bg-musify-accent-hover text-black font-semibold disabled:opacity-50"
+          className="px-6 py-3 rounded-full bg-gradient-to-r from-musify-teal to-musify-purple hover:opacity-90 text-white font-semibold disabled:opacity-50"
         >
           Create
         </button>

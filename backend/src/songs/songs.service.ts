@@ -13,10 +13,11 @@ export class SongsService {
     return song.save();
   }
 
-  async findAll(filters?: { genre?: string; artist?: string; search?: string }, skip = 0, limit = 20) {
+  async findAll(filters?: { genre?: string; artist?: string; album?: string; search?: string }, skip = 0, limit = 20) {
     const query: any = { isApproved: true };
     if (filters?.genre) query.genre = new RegExp(filters.genre, 'i');
     if (filters?.artist) query.artist = new RegExp(filters.artist, 'i');
+    if (filters?.album) query.album = new RegExp(filters.album, 'i');
     if (filters?.search) {
       query.$or = [
         { title: new RegExp(filters.search, 'i') },
@@ -75,6 +76,27 @@ export class SongsService {
       .sort({ playCount: -1 })
       .limit(limit)
       .lean();
+  }
+
+  async getNewReleases(limit = 10) {
+    return this.songModel
+      .find({ isApproved: true })
+      .populate('singerId')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+  }
+
+  async getPlatformStats() {
+    const [totalPlays, totalSongs] = await Promise.all([
+      this.songModel.aggregate([{ $match: { isApproved: true } }, { $group: { _id: null, total: { $sum: '$playCount' } } }]),
+      this.songModel.countDocuments({ isApproved: true }),
+    ]);
+    return {
+      totalStreams: totalPlays[0]?.total ?? 0,
+      totalSongs: totalSongs ?? 0,
+      totalDownloads: 0,
+    };
   }
 
   async getPendingApproval() {

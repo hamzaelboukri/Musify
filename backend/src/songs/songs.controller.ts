@@ -14,12 +14,13 @@ export class SongsController {
   findAll(
     @Query('genre') genre?: string,
     @Query('artist') artist?: string,
+    @Query('album') album?: string,
     @Query('search') search?: string,
     @Query('skip') skip?: string,
     @Query('limit') limit?: string,
   ) {
     return this.songsService.findAll(
-      { genre, artist, search },
+      { genre, artist, album, search },
       parseInt(skip || '0'),
       parseInt(limit || '20'),
     );
@@ -29,6 +30,18 @@ export class SongsController {
   @Get('trending')
   getTrending(@Query('limit') limit?: string) {
     return this.songsService.getTrending(parseInt(limit || '10'));
+  }
+
+  @Public()
+  @Get('new-releases')
+  getNewReleases(@Query('limit') limit?: string) {
+    return this.songsService.getNewReleases(parseInt(limit || '10'));
+  }
+
+  @Public()
+  @Get('stats')
+  getPlatformStats() {
+    return this.songsService.getPlatformStats();
   }
 
   @Public()

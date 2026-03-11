@@ -21,7 +21,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({ name, email, password, role });
-      router.replace('/home');
+      router.replace('/');
     } catch (err: unknown) {
       setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Registration failed');
     } finally {
@@ -30,9 +30,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-musify-teal/20 via-musify-purple/10 to-musify-dark">
       <div className="w-full max-w-md">
-        <h1 className="text-4xl font-bold text-center text-musify-accent mb-8">Musify</h1>
+        <div className="flex justify-center mb-8">
+          <img src="/musify-logo.png" alt="Musify" className="w-20 h-20 object-contain" />
+        </div>
+        <h1 className="text-4xl font-bold text-center text-white mb-8">Musify</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <input
@@ -41,6 +44,7 @@ export default function RegisterPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            autoComplete="name"
             className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
           />
           <input
@@ -49,6 +53,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
             className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
           />
           <input
@@ -58,6 +63,7 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
+            autoComplete="new-password"
             className="w-full px-4 py-3 rounded-lg bg-musify-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-musify-accent"
           />
           <select
@@ -71,14 +77,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-musify-accent hover:bg-musify-accent-hover text-black font-semibold transition disabled:opacity-50"
+            className="w-full py-3 rounded-full bg-gradient-to-r from-musify-teal to-musify-purple hover:opacity-90 text-white font-semibold transition disabled:opacity-50"
           >
             {loading ? 'Registering...' : 'Register'}
           </button>
         </form>
         <p className="text-center text-white/60 mt-6">
           Already have an account?{' '}
-          <Link href="/" className="text-musify-accent hover:underline">
+          <Link href="/login" className="text-musify-accent hover:text-musify-teal hover:underline">
             Login
           </Link>
         </p>
