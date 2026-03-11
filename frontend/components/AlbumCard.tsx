@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useAddToPlaylist } from './AddToPlaylistDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Song = {
   _id: string;
@@ -28,6 +30,8 @@ function albumHref(song: Song) {
 
 export function AlbumCard({ song }: AlbumCardProps) {
   const { play, currentSong, isPlaying } = usePlayer();
+  const addToPlaylist = useAddToPlaylist();
+  const { user } = useAuth();
   const isCurrent = currentSong?._id === song._id;
   const image = song.coverImage || '/placeholder.svg';
 
@@ -42,6 +46,21 @@ export function AlbumCard({ song }: AlbumCardProps) {
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-105 transition"
         />
+        {addToPlaylist && user && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              addToPlaylist.open(song);
+            }}
+            className="absolute top-2 right-2 p-2 rounded-full bg-black/50 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition z-10"
+            title="Add to playlist"
+          >
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z" />
+            </svg>
+          </button>
+        )}
         <div
           className={`absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition ${
             isCurrent && isPlaying ? 'opacity-100' : ''

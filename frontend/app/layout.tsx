@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PlayerProvider } from '@/contexts/PlayerContext';
 import { SearchProvider } from '@/contexts/SearchContext';
+import { AddToPlaylistProvider } from '@/components/AddToPlaylistDialog';
 import { AppShell } from '@/components/AppShell';
 import './globals.css';
 
@@ -22,7 +23,9 @@ export default function RootLayout({
         <AuthProvider>
           <PlayerProvider>
             <SearchProvider>
-              <AppShell>{children}</AppShell>
+              <AddToPlaylistProvider>
+                <AppShell>{children}</AppShell>
+              </AddToPlaylistProvider>
             </SearchProvider>
           </PlayerProvider>
         </AuthProvider>
