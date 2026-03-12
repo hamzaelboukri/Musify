@@ -26,7 +26,7 @@ export const singerService = {
     duration: number;
   }) => api.post('/singers/songs', data),
   getMySongs: () => api.get('/singers/songs/me'),
-  updateSong: (songId: string, data: Partial<{ title: string; artist: string; album: string; genre: string }>) =>
+  updateSong: (songId: string, data: Partial<{ title: string; artist: string; album: string; genre: string; coverImage: string }>) =>
     api.patch(`/singers/songs/${songId}`, data),
   deleteSong: (songId: string) => api.delete(`/singers/songs/${songId}`),
   getStats: () => api.get('/singers/stats/me'),

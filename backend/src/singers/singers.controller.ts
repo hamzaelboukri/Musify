@@ -42,12 +42,6 @@ export class SingersController {
     return this.singersService.getAllApproved();
   }
 
-  @Public()
-  @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.singersService.getProfileById(id);
-  }
-
   @Post('songs')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SINGER')
@@ -78,6 +72,12 @@ export class SingersController {
   @Roles('SINGER')
   deleteSong(@Param('songId') songId: string, @CurrentUser('_id') userId: string) {
     return this.singersService.deleteSong(songId, userId);
+  }
+
+  @Public()
+  @Get(':id')
+  getById(@Param('id') id: string) {
+    return this.singersService.getProfileById(id);
   }
 
   @Get('stats/me')

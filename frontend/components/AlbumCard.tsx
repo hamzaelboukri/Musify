@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 import { useAddToPlaylist } from './AddToPlaylistDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -33,7 +34,7 @@ export function AlbumCard({ song }: AlbumCardProps) {
   const addToPlaylist = useAddToPlaylist();
   const { user } = useAuth();
   const isCurrent = currentSong?._id === song._id;
-  const image = song.coverImage || '/placeholder.svg';
+  const image = getCoverImageUrl(song.coverImage);
 
   return (
     <Link
@@ -45,6 +46,7 @@ export function AlbumCard({ song }: AlbumCardProps) {
           src={image}
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-105 transition"
+          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
         />
         {addToPlaylist && user && (
           <button

@@ -3,6 +3,7 @@
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useAddToPlaylist } from './AddToPlaylistDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 type Song = {
   _id: string;
@@ -40,9 +41,10 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
     >
       <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
         <img
-          src={song.coverImage || '/placeholder.svg'}
+          src={getCoverImageUrl(song.coverImage)}
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-105 transition"
+          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
         />
         <div
           className={`absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition ${

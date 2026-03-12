@@ -9,6 +9,7 @@ export const adminService = {
   approveSinger: (singerId: string) => api.post(`/admin/singers/${singerId}/approve`),
   rejectSinger: (singerId: string) => api.post(`/admin/singers/${singerId}/reject`),
   getPendingSongs: () => api.get('/admin/songs/pending'),
+  getAllSongs: (skip = 0, limit = 100) => api.get('/admin/songs', { params: { skip, limit } }),
   approveSong: (songId: string) => api.post(`/admin/songs/${songId}/approve`),
   deleteSong: (songId: string) => api.delete(`/admin/songs/${songId}`),
   getSessions: () => api.get('/admin/sessions'),

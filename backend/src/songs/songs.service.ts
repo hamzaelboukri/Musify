@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Song, SongDocument } from './schemas/song.schema';
 import { UserRole } from '../users/schemas/user.schema';
 
@@ -41,7 +41,7 @@ export class SongsService {
   }
 
   async findBySinger(singerId: string, includeUnapproved = false) {
-    const query: any = { singerId };
+    const query: any = { singerId: new Types.ObjectId(singerId) };
     if (!includeUnapproved) query.isApproved = true;
     return this.songModel.find(query).sort({ createdAt: -1 }).lean();
   }

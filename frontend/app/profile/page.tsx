@@ -9,6 +9,7 @@ import { statsService } from '@/services/statsService';
 import { favoriteService } from '@/services/favoriteService';
 import { playlistService } from '@/services/playlistService';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 type ProfileData = { name: string; email: string; following?: string[] };
 type HistoryItem = { songId?: { title?: string; artist?: string; coverImage?: string; _id: string; audioUrl: string; duration: number }; playedAt?: string };
@@ -324,9 +325,10 @@ export default function ProfilePage() {
                     className="flex items-center gap-4 p-4 rounded-xl bg-musify-card/60 border border-white/5 hover:bg-white/5 hover:border-musify-teal/20 transition-all cursor-pointer group"
                   >
                     <img
-                      src={song.coverImage || '/placeholder.svg'}
+                      src={getCoverImageUrl(song.coverImage)}
                       alt=""
                       className="w-14 h-14 rounded-lg object-cover group-hover:scale-105 transition"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium truncate">{song.title || 'Unknown'}</p>
@@ -406,9 +408,10 @@ export default function ProfilePage() {
                 >
                   <div className="w-full aspect-square rounded-lg overflow-hidden bg-white/5 mb-3">
                     <img
-                      src={fav.coverImage || '/placeholder.svg'}
+                      src={getCoverImageUrl(fav.coverImage)}
                       alt=""
                       className="w-full h-full object-cover group-hover:scale-105 transition"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
                     />
                   </div>
                   <p className="text-white font-medium truncate">{fav.title || 'Unknown'}</p>

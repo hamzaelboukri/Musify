@@ -52,6 +52,16 @@ export class AdminService {
     return this.songsService.getPendingApproval();
   }
 
+  async getAllSongs(skip = 0, limit = 100) {
+    return this.songModel
+      .find()
+      .populate('singerId', 'stageName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+  }
+
   async approveSong(songId: string) {
     return this.songsService.approve(songId);
   }

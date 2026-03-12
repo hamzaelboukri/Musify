@@ -1,6 +1,7 @@
 'use client';
 
 import { usePlayer } from '@/contexts/PlayerContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 export function MusicPlayer() {
   const { currentSong, isPlaying, progress, volume, setVolume, toggle, stop, next, prev, seek } = usePlayer();
@@ -16,7 +17,8 @@ export function MusicPlayer() {
       <div className="max-w-[1800px] mx-auto flex items-center gap-4">
         <div className="flex items-center gap-4 min-w-[280px]">
           <img
-            src={currentSong.coverImage || '/placeholder.svg'}
+            src={getCoverImageUrl(currentSong.coverImage)}
+            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
             alt={currentSong.title}
             className="w-14 h-14 rounded-md object-cover shadow-lg"
           />

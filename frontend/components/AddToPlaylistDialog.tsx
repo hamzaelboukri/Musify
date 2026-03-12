@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { playlistService } from '@/services/playlistService';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 type Song = {
   _id: string;
@@ -147,7 +148,8 @@ function AddToPlaylistDialog({
           <div className="flex gap-4 items-center">
             <div className="relative shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white/5 shadow-lg ring-1 ring-white/10">
               <img
-                src={song.coverImage || '/placeholder.svg'}
+                src={getCoverImageUrl(song.coverImage)}
+                onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
                 alt=""
                 className="w-full h-full object-cover"
               />

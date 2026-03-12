@@ -64,7 +64,7 @@ export class SingersService {
     return this.songsService.create({
       ...data,
       singerId: profile._id,
-      isApproved: false,
+      isApproved: true,
     });
   }
 

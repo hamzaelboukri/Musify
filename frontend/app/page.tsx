@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { favoriteService } from '@/services/favoriteService';
 import { usePlayer } from '@/contexts/PlayerContext';
 import Link from 'next/link';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 const GENRES = ['All', 'Pop', 'Rock', 'Hip-hop', 'Jazz', 'Blues', 'Country', 'Electronic', 'Classical', 'R&B'];
 
@@ -219,7 +220,7 @@ export default function HomePage() {
                       href={albumHref}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition group"
                     >
-                      <img src={song.coverImage || '/placeholder.svg'} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      <img src={getCoverImageUrl(song.coverImage)} alt="" className="w-12 h-12 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-white font-medium truncate">{song.title}</p>
                         <p className="text-white/50 text-xs">{formatPlays(song.playCount || 0)} plays · {formatDuration(song.duration)}</p>

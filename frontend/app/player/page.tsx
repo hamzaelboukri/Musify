@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 export default function PlayerPage() {
   const { user, loading } = useAuth();
@@ -22,9 +23,10 @@ export default function PlayerPage() {
       {currentSong ? (
         <div className="text-center">
           <img
-            src={currentSong.coverImage || '/placeholder.svg'}
+            src={getCoverImageUrl(currentSong.coverImage)}
             alt={currentSong.title}
             className="w-64 h-64 mx-auto rounded-2xl object-cover mb-6 shadow-xl"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
           />
           <h2 className="text-2xl font-bold text-white">{currentSong.title}</h2>
           <p className="text-white/60 mt-1">{currentSong.artist}</p>
@@ -39,7 +41,7 @@ export default function PlayerPage() {
             {queue.map((s, i) => (
               <div key={s._id} className="flex items-center gap-3 p-3 rounded-lg bg-musify-card">
                 <span className="text-white/60 w-6">{i + 1}</span>
-                <img src={s.coverImage || '/placeholder.svg'} alt="" className="w-10 h-10 rounded" />
+                <img src={getCoverImageUrl(s.coverImage)} alt="" className="w-10 h-10 rounded" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
                 <div>
                   <p className="text-white font-medium">{s.title}</p>
                   <p className="text-sm text-white/60">{s.artist}</p>

@@ -58,6 +58,11 @@ export class AdminController {
     return this.adminService.getPendingSongs();
   }
 
+  @Get('songs')
+  getAllSongs(@Query('skip') skip?: string, @Query('limit') limit?: string) {
+    return this.adminService.getAllSongs(parseInt(skip || '0'), parseInt(limit || '100'));
+  }
+
   @Post('songs/:songId/approve')
   approveSong(@Param('songId') songId: string) {
     return this.adminService.approveSong(songId);

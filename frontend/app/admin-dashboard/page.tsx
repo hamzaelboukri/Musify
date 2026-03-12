@@ -213,7 +213,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Record<string, number> | null>(null);
   const [users, setUsers] = useState<unknown[]>([]);
   const [pendingSingers, setPendingSingers] = useState<unknown[]>([]);
-  const [pendingSongs, setPendingSongs] = useState<unknown[]>([]);
+  const [allSongs, setAllSongs] = useState<unknown[]>([]);
   const [sessions, setSessions] = useState<unknown[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -227,7 +227,7 @@ export default function AdminDashboardPage() {
       adminService.getStats().then(({ data }) => setStats(data));
       adminService.getUsers().then(({ data }) => setUsers(data));
       adminService.getPendingSingers().then(({ data }) => setPendingSingers(data));
-      adminService.getPendingSongs().then(({ data }) => setPendingSongs(data));
+      adminService.getAllSongs().then(({ data }) => setAllSongs(data));
       adminService.getSessions().then(({ data }) => setSessions(data));
     }
   }, [user]);
@@ -236,7 +236,7 @@ export default function AdminDashboardPage() {
     adminService.getStats().then(({ data }) => setStats(data));
     adminService.getUsers().then(({ data }) => setUsers(data));
     adminService.getPendingSingers().then(({ data }) => setPendingSingers(data));
-    adminService.getPendingSongs().then(({ data }) => setPendingSongs(data));
+    adminService.getAllSongs().then(({ data }) => setAllSongs(data));
     adminService.getSessions().then(({ data }) => setSessions(data));
   };
 
@@ -362,7 +362,7 @@ export default function AdminDashboardPage() {
             </button>
             <button className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition relative">
               <BellIcon className="w-5 h-5" />
-              {(pendingSingers as unknown[]).length + (pendingSongs as unknown[]).length > 0 && (
+              {(pendingSingers as unknown[]).length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-musify-teal" />
               )}
             </button>
@@ -409,7 +409,7 @@ export default function AdminDashboardPage() {
               <KPICard label="Total Users" value={stats.totalUsers ?? 0} icon={<TotalIcon className="w-7 h-7" />} primary />
               <KPICard label="Listeners" value={stats.listeners ?? 0} icon={<HeadphonesIcon className="w-6 h-6" />} sub="Active listeners" />
               <KPICard label="Artists" value={stats.artists ?? 0} icon={<MicIcon className="w-6 h-6" />} sub="Approved singers" />
-              <KPICard label="Pending" value={(stats.pendingSingers ?? 0) + (stats.pendingSongs ?? 0)} icon={<ClockIcon className="w-6 h-6" />} sub="Awaiting approval" />
+              <KPICard label="Pending" value={stats.pendingSingers ?? 0} icon={<ClockIcon className="w-6 h-6" />} sub="Singers awaiting approval" />
             </div>
 
             {/* Row 2: Analytics + Reminders */}
@@ -438,8 +438,8 @@ export default function AdminDashboardPage() {
             <div className="rounded-3xl bg-musify-card border border-white/10 p-6">
               <h3 className="text-white font-bold mb-4">Pending Approvals</h3>
               <p className="text-white/70 text-sm mb-4">
-                {(pendingSingers as unknown[]).length + (pendingSongs as unknown[]).length > 0
-                  ? `${(pendingSingers as unknown[]).length} singers and ${(pendingSongs as unknown[]).length} songs need review`
+                {(pendingSingers as unknown[]).length > 0
+                  ? `${(pendingSingers as unknown[]).length} singers need approval`
                   : 'No pending approvals'}
               </p>
               <button onClick={() => setTab('singers')} className="w-full py-3 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium flex items-center justify-center gap-2">
@@ -448,15 +448,15 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Row 3: Pending Songs + Active Sessions */}
+            {/* Row 3: Recent Songs + Active Sessions */}
             <div className="rounded-3xl bg-musify-card border border-white/10 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold">Pending Songs</h3>
-                <button onClick={() => setTab('songs')} className="text-musify-teal text-sm font-medium hover:underline">+ New</button>
+                <h3 className="text-white font-bold">Recent Songs</h3>
+                <button onClick={() => setTab('songs')} className="text-musify-teal text-sm font-medium hover:underline">View all</button>
               </div>
               <div className="space-y-3">
-                {(pendingSongs as { title: string; artist: string }[]).length > 0 ? (
-                  (pendingSongs as { title: string; artist: string }[]).slice(0, 4).map((s, i) => (
+                {(allSongs as { title: string; artist: string }[]).length > 0 ? (
+                  (allSongs as { title: string; artist: string }[]).slice(0, 4).map((s, i) => (
                     <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
                       <div className="w-8 h-8 rounded-lg bg-musify-teal/20 flex items-center justify-center">
                         <SongsIcon className="w-4 h-4 text-musify-teal" />
@@ -468,7 +468,7 @@ export default function AdminDashboardPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-white/50 text-sm">No pending songs</p>
+                  <p className="text-white/50 text-sm">No songs yet</p>
                 )}
               </div>
             </div>
@@ -682,9 +682,7 @@ export default function AdminDashboardPage() {
           <>
             {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <KPICard label="Total Songs" value={(stats.totalSongs ?? 0) + (stats.pendingSongs ?? 0)} icon={<SongsIcon className="w-7 h-7" />} primary />
-              <KPICard label="Approved" value={stats.totalSongs ?? 0} icon={<CheckIcon className="w-6 h-6" />} />
-              <KPICard label="Pending" value={stats.pendingSongs ?? 0} icon={<ClockIcon className="w-6 h-6" />} />
+              <KPICard label="Total Songs" value={stats.totalSongs ?? 0} icon={<SongsIcon className="w-7 h-7" />} primary />
               <KPICard label="Total Plays" value={stats.totalPlays ?? 0} icon={<PlayIcon className="w-6 h-6" />} />
             </div>
             )}
@@ -693,25 +691,16 @@ export default function AdminDashboardPage() {
               <div className="w-9 h-9 rounded-lg bg-musify-teal/20 flex items-center justify-center">
                 <SongsIcon className="w-4 h-4 text-musify-teal" />
               </div>
-              <h2 className="text-lg font-bold text-white">Pending Songs</h2>
+              <h2 className="text-lg font-bold text-white">All Songs</h2>
             </div>
             <AdminTable
               columns={[
                 { key: 'title', label: 'Title' },
                 { key: 'artist', label: 'Artist' },
               ]}
-              data={pendingSongs as { title: string; artist: string; _id: string }[]}
+              data={allSongs as { title: string; artist: string; _id: string }[]}
               actions={(row) => (
                 <div className="flex gap-2 justify-end">
-                  <button
-                    onClick={async () => {
-                      await adminService.approveSong((row as { _id: string })._id);
-                      refresh();
-                    }}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30"
-                  >
-                    Approve
-                  </button>
                   <button
                     onClick={async () => {
                       if (confirm('Delete this song?')) {

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { singerService } from '@/services/singerService';
 import { BackIcon, DeleteIcon, GridIcon, MusicIcon, ChartIcon, SettingsIcon } from '@/components/icons';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -35,6 +36,8 @@ type Song = {
   genre?: string;
   duration?: number;
   createdAt?: string;
+  coverImage?: string;
+  album?: string;
 };
 
 type Stats = {
@@ -68,6 +71,39 @@ export default function SingerDashboardPage() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [songSort, setSongSort] = useState<'newest' | 'plays' | 'title'>('newest');
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', genre: '' });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [songsLoading, setSongsLoading] = useState(false);
+  const [songsError, setSongsError] = useState<string | null>(null);
+  const [songsPage, setSongsPage] = useState(1);
+  const SONGS_PER_PAGE = 8;
+
+  const fetchMySongs = useCallback(() => {
+    if (user?.role !== 'SINGER' || !profile?.isApproved) return;
+    setSongsLoading(true);
+    setSongsError(null);
+    Promise.all([
+      singerService.getMySongs(),
+      singerService.getStats(),
+    ])
+      .then(([songsRes, statsRes]) => {
+        const data = songsRes.data;
+        setSongs(Array.isArray(data) ? data : []);
+        setStats(statsRes.data as Stats);
+      })
+      .catch((err) => {
+        setSongs([]);
+        setSongsError(err?.response?.data?.message || err?.message || 'Failed to load songs. Please try again.');
+      })
+      .finally(() => setSongsLoading(false));
+  }, [user?.role, profile?.isApproved]);
+
+  const CATEGORIES = ['Pop', 'Rock', 'Hip-Hop', 'R&B', 'Jazz', 'Electronic', 'Classical', 'Country', 'Reggae', 'Latin', 'Metal', 'Indie', 'Other'];
+  const filteredCategories = CATEGORIES.filter((c) => c.toLowerCase().includes(categorySearch.toLowerCase().trim()));
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -79,6 +115,30 @@ export default function SingerDashboardPage() {
   useEffect(() => {
     if (activeNav === 'songs' && songs.length === 0) setShowUpload(true);
   }, [activeNav, songs.length]);
+
+  const closeModal = useCallback(() => {
+    setShowUpload(false);
+    setForm({ title: '', artist: profile?.stageName || '', album: '', genre: '', duration: 180 });
+    setAudioFile(null);
+    setImageFile(null);
+    setCategoryOpen(false);
+    setCategorySearch('');
+  }, [profile?.stageName]);
+  useEffect(() => {
+    if (!showUpload && !editingSong) return;
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (editingSong) setEditingSong(null);
+        else closeModal();
+      }
+    };
+    window.addEventListener('keydown', onEsc);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onEsc);
+      document.body.style.overflow = '';
+    };
+  }, [showUpload, editingSong, closeModal]);
 
   useEffect(() => {
     if (profile?.stageName) setForm((f) => ({ ...f, artist: profile.stageName }));
@@ -92,7 +152,7 @@ export default function SingerDashboardPage() {
         .then(({ data }) => {
           setProfile(data);
           if (data?.isApproved) {
-            singerService.getMySongs().then(({ data: s }) => setSongs(s as Song[])).catch(() => setSongs([]));
+            singerService.getMySongs().then(({ data: s }) => setSongs(Array.isArray(s) ? s : [])).catch(() => setSongs([]));
             singerService.getStats().then(({ data: st }) => setStats(st as Stats)).catch(() => setStats(null));
           }
         })
@@ -102,6 +162,18 @@ export default function SingerDashboardPage() {
       setProfileLoading(false);
     }
   }, [user]);
+
+  // Refetch songs when navigating to Songs tab (ensures fresh data for management)
+  useEffect(() => {
+    if (activeNav === 'songs' && profile?.isApproved) {
+      fetchMySongs();
+    }
+  }, [activeNav, profile?.isApproved, fetchMySongs]);
+
+  // Reset to page 1 when songs or sort changes
+  useEffect(() => {
+    setSongsPage(1);
+  }, [songs.length, songSort]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,10 +199,34 @@ export default function SingerDashboardPage() {
       setForm({ title: '', artist: profile.stageName, album: '', genre: '', duration: 180 });
       setAudioFile(null);
       setImageFile(null);
+      setCategoryOpen(false);
+      setCategorySearch('');
     } catch (err) {
       console.error(err);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleEditSong = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSong) return;
+    try {
+      let coverImage: string | undefined;
+      if (editImageFile) {
+        const { data: imageData } = await singerService.uploadImage(editImageFile);
+        coverImage = imageData.url;
+      }
+      await singerService.updateSong(editingSong._id, {
+        title: editForm.title,
+        genre: editForm.genre,
+        ...(coverImage && { coverImage }),
+      });
+      fetchMySongs();
+      setEditingSong(null);
+      setEditImageFile(null);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -328,9 +424,10 @@ export default function SingerDashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {activeNav === 'songs' && (
-                <button onClick={() => setShowUpload(!showUpload)} className="px-4 py-2 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition">
-                  {showUpload ? 'Cancel' : '+ Upload'}
+              {profile?.isApproved && (
+                <button onClick={() => setShowUpload(true)} className="px-4 py-2 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Create Song
                 </button>
               )}
               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
@@ -350,133 +447,187 @@ export default function SingerDashboardPage() {
           {/* SONGS PAGE: Upload form + songs list */}
           {activeNav === 'songs' && (
             <>
-              {showUpload && (
-                <form onSubmit={handleUpload} className="mb-8 p-8 rounded-3xl upload-card space-y-6">
-                  <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+              {/* Artist header + Songs management */}
+              <div className="mb-6">
+                <div className="rounded-2xl bg-musify-card border border-white/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center text-2xl font-bold text-musify-teal">
+                      {profile?.stageName?.[0]?.toUpperCase() || '?'}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white">New Song</h3>
-                      <p className="text-sm text-musify-text-muted">Upload your track and cover art</p>
+                      <h2 className="text-xl font-bold text-white">{profile?.stageName || 'Artist'}</h2>
+                      <p className="text-musify-text-muted text-sm">{songs.length} song{songs.length !== 1 ? 's' : ''} · {(stats?.totalPlays ?? 0).toLocaleString()} total plays</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-2">Song Name</label>
-                      <input placeholder="Enter song title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-2">Artist (you)</label>
-                      <input value={form.artist || profile?.stageName || ''} readOnly placeholder="Your stage name" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/90 cursor-not-allowed" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-white/90 mb-2">Category</label>
-                      <select value={form.genre} onChange={(e) => setForm((f) => ({ ...f, genre: e.target.value }))} className="w-full px-4 py-3 rounded-xl input-premium text-white focus:outline-none">
-                        <option value="">Select category</option>
-                        <option value="Pop">Pop</option>
-                        <option value="Rock">Rock</option>
-                        <option value="Hip-Hop">Hip-Hop</option>
-                        <option value="R&B">R&B</option>
-                        <option value="Jazz">Jazz</option>
-                        <option value="Electronic">Electronic</option>
-                        <option value="Classical">Classical</option>
-                        <option value="Country">Country</option>
-                        <option value="Reggae">Reggae</option>
-                        <option value="Latin">Latin</option>
-                        <option value="Metal">Metal</option>
-                        <option value="Indie">Indie</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="file-zone rounded-2xl p-6">
-                      <label className="flex flex-col items-center justify-center cursor-pointer gap-3">
-                        <div className="w-14 h-14 rounded-2xl bg-musify-teal/20 flex items-center justify-center">
-                          <svg className="w-7 h-7 text-musify-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                        </div>
-                        <div className="text-center">
-                          <p className="font-medium text-white">MP3 Song File</p>
-                          <p className="text-sm text-musify-text-muted mt-0.5">{audioFile ? audioFile.name : 'Click or drag to upload'}</p>
-                        </div>
-                        <input
-                          type="file"
-                          accept=".mp3,.m4a,.wav,.ogg"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setAudioFile(file);
-                            if (file) {
-                              const audio = new Audio();
-                              audio.src = URL.createObjectURL(file);
-                              audio.onloadedmetadata = () => {
-                                setForm((f) => ({ ...f, duration: Math.round(audio.duration) || 180 }));
-                                URL.revokeObjectURL(audio.src);
-                              };
-                              audio.onerror = () => setForm((f) => ({ ...f, duration: 180 }));
-                            }
-                          }}
-                          required
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    <div className="file-zone rounded-2xl p-6">
-                      <label className="flex flex-col items-center justify-center cursor-pointer gap-3">
-                        <div className="w-14 h-14 rounded-2xl bg-musify-purple/20 flex items-center justify-center">
-                          <svg className="w-7 h-7 text-musify-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        </div>
-                        <div className="text-center">
-                          <p className="font-medium text-white">Cover Image</p>
-                          <p className="text-sm text-musify-text-muted mt-0.5">{imageFile ? imageFile.name : 'Optional · JPG, PNG'}</p>
-                        </div>
-                        <input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="hidden" />
-                      </label>
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <button type="submit" disabled={uploading} className="px-8 py-3.5 rounded-xl btn-upload-premium text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                      {uploading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Uploading...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          Upload Song
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              )}
+                  <button onClick={() => setShowUpload(true)} className="px-5 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition flex items-center gap-2 shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    Create Song
+                  </button>
+                </div>
+              </div>
+
               <div className="rounded-3xl upload-card p-6">
-                <h3 className="text-lg font-bold text-white mb-5">Your Songs</h3>
-                {songs.length === 0 ? (
-                  <div className="py-16 text-center rounded-2xl border border-dashed border-white/10 bg-white/5">
-                    <p className="text-musify-text-muted">No songs yet. Click &quot;+ Upload&quot; to add your first track.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Manage Your Songs</h3>
+                    <p className="text-musify-text-muted text-sm mt-0.5">View, edit, sort, and delete your tracks</p>
+                  </div>
+                  {songs.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <button onClick={fetchMySongs} disabled={songsLoading} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-musify-text-muted hover:text-white transition disabled:opacity-50" title="Refresh songs">
+                        <svg className={`w-5 h-5 ${songsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-musify-text-muted text-sm">Sort by:</span>
+                        <select value={songSort} onChange={(e) => setSongSort(e.target.value as 'newest' | 'plays' | 'title')} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-musify-teal/50">
+                          <option value="newest">Newest first</option>
+                          <option value="plays">Most plays</option>
+                          <option value="title">Title A-Z</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {songsLoading ? (
+                  <div className="py-20 px-6 text-center rounded-2xl border border-white/10 bg-white/5">
+                    <div className="w-12 h-12 rounded-full border-2 border-musify-teal/30 border-t-musify-teal animate-spin mx-auto mb-4" />
+                    <p className="text-musify-text-muted">Loading your songs...</p>
+                  </div>
+                ) : songs.length === 0 ? (
+                  <div className="py-20 px-6 text-center rounded-2xl border-2 border-dashed border-white/10 bg-white/5">
+                    {songsError && (
+                      <div className="mb-4 p-4 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400 text-sm">
+                        {songsError}
+                      </div>
+                    )}
+                    <div className="w-20 h-20 rounded-2xl bg-musify-teal/20 flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-10 h-10 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                    </div>
+                    <h4 className="text-lg font-semibold text-white mb-2">Your songs will appear here</h4>
+                    <p className="text-musify-text-muted text-sm mb-6 max-w-sm mx-auto">This is where you see and manage all your tracks. Load your songs or create a new one.</p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <button onClick={fetchMySongs} disabled={songsLoading} className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium transition inline-flex items-center gap-2 disabled:opacity-50">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        Load my songs
+                      </button>
+                      <button onClick={() => setShowUpload(true)} className="px-8 py-3.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-semibold transition inline-flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                        Create Song
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {songs.map((song) => (
-                      <div key={song._id} className="flex items-center gap-4 p-4 rounded-2xl song-card-premium group">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center shrink-0">
-                          <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[...songs]
+                        .sort((a, b) => {
+                          if (songSort === 'newest') return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime());
+                          if (songSort === 'plays') return (b.playCount || 0) - (a.playCount || 0);
+                          return (a.title || '').localeCompare(b.title || '');
+                        })
+                        .slice((songsPage - 1) * SONGS_PER_PAGE, songsPage * SONGS_PER_PAGE)
+                        .map((song) => (
+                          <div key={song._id} className="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-musify-teal/30 hover:bg-white/[0.07] transition-all duration-200">
+                            <div className="relative aspect-square">
+                              <img src={getCoverImageUrl(song.coverImage)} alt={song.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className={`text-xs font-medium px-2 py-1 rounded-lg ${song.isApproved ? 'bg-musify-teal/90 text-white' : 'bg-amber-500/90 text-white'}`}>{song.isApproved ? 'Live' : 'Pending'}</span>
+                                <div className="flex gap-1">
+                                  <button onClick={(e) => { e.stopPropagation(); setEditingSong(song); setEditForm({ title: song.title, genre: song.genre || '' }); setEditImageFile(null); }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-teal/80 text-white" title="Edit">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                  </button>
+                                  <button onClick={async (e) => { e.stopPropagation(); if (confirm('Delete this song?')) { await singerService.deleteSong(song._id); fetchMySongs(); } }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-pink/80 text-white" title="Delete">
+                                    <DeleteIcon size="sm" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              <p className="font-semibold text-white truncate">{song.title}</p>
+                              <p className="text-musify-text-muted text-sm truncate mt-0.5">{song.artist}</p>
+                              <div className="flex items-center justify-between mt-2 text-xs text-musify-text-muted">
+                                <span>{song.genre || '—'}</span>
+                                <span>{(song.playCount || 0).toLocaleString()} plays</span>
+                              </div>
+                              {song.duration != null && <p className="text-musify-text-muted text-xs mt-1">{Math.floor(song.duration / 60)}:{String(song.duration % 60).padStart(2, '0')}</p>}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                    {Math.ceil(songs.length / SONGS_PER_PAGE) > 1 && (
+                      <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/10">
+                        <p className="text-musify-text-muted text-sm">
+                          Showing {((songsPage - 1) * SONGS_PER_PAGE) + 1}–{Math.min(songsPage * SONGS_PER_PAGE, songs.length)} of {songs.length} songs
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setSongsPage((p) => Math.max(1, p - 1))} disabled={songsPage <= 1} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            Previous
+                          </button>
+                          <span className="px-4 py-2 rounded-xl bg-musify-teal/20 text-musify-teal text-sm font-medium">
+                            Page {songsPage} of {Math.ceil(songs.length / SONGS_PER_PAGE)}
+                          </span>
+                          <button onClick={() => setSongsPage((p) => Math.min(Math.ceil(songs.length / SONGS_PER_PAGE), p + 1))} disabled={songsPage >= Math.ceil(songs.length / SONGS_PER_PAGE)} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            Next
+                          </button>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-white truncate">{song.title}</p>
-                          <p className="text-musify-text-muted text-sm">{song.artist} · {(song.playCount || 0).toLocaleString()} plays</p>
-                        </div>
-                        <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${song.isApproved ? 'bg-musify-teal/20 text-musify-teal' : 'bg-amber-500/20 text-amber-400'}`}>{song.isApproved ? 'Live' : 'Pending'}</span>
-                        <button onClick={async () => { if (confirm('Delete this song?')) { await singerService.deleteSong(song._id); singerService.getMySongs().then(({ data }) => setSongs(data as Song[])); singerService.getStats().then(({ data }) => setStats(data as Stats)); } }} className="p-2.5 rounded-xl text-white/40 hover:text-musify-pink hover:bg-musify-pink/10 opacity-0 group-hover:opacity-100 transition">
-                          <DeleteIcon size="sm" />
-                        </button>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
+
+              {/* Edit Song Modal */}
+              {editingSong && (
+                <div className="modal-overlay" onClick={() => setEditingSong(null)} role="dialog" aria-modal="true">
+                  <div className="modal-content relative p-8" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => setEditingSong(null)} className="modal-close-btn" aria-label="Close">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    <form onSubmit={handleEditSong} className="space-y-6">
+                      <div className="flex items-center gap-3 pb-4 border-b border-white/10 pr-12">
+                        <div className="w-12 h-12 rounded-2xl bg-musify-teal/20 flex items-center justify-center shrink-0">
+                          <svg className="w-6 h-6 text-musify-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-white">Edit Song</h2>
+                          <p className="text-sm text-musify-text-muted">{editingSong.title}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Song Name</label>
+                        <input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-4 py-3 rounded-xl input-premium text-white focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Category</label>
+                        <input value={editForm.genre} onChange={(e) => setEditForm((f) => ({ ...f, genre: e.target.value }))} placeholder="e.g. Pop, Rock" className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Cover Image</label>
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-white/5 shrink-0">
+                            {editImageFile ? (
+                              <img src={URL.createObjectURL(editImageFile)} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={getCoverImageUrl(editingSong.coverImage)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                            )}
+                          </div>
+                          <div className="file-zone rounded-xl p-4 flex-1">
+                            <label className="flex flex-col items-center justify-center cursor-pointer gap-2">
+                              <span className="text-sm text-musify-text-muted">{editImageFile ? editImageFile.name : 'Click to add or change cover'}</span>
+                              <input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={(e) => setEditImageFile(e.target.files?.[0] || null)} className="hidden" />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <button type="submit" className="px-8 py-3.5 rounded-xl btn-upload-premium text-white font-semibold transition">Save Changes</button>
+                        <button type="button" onClick={() => setEditingSong(null)} className="px-6 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/90 font-medium transition">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -732,6 +883,155 @@ export default function SingerDashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Create Song Modal - popup overlay (visible from any tab) */}
+      {showUpload && (
+        <div className="modal-overlay" onClick={closeModal} role="dialog" aria-modal="true" aria-labelledby="create-song-title">
+          <div className="modal-content relative p-8" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={closeModal} className="modal-close-btn" aria-label="Close">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <form onSubmit={handleUpload} className="space-y-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/10 pr-12">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center shrink-0">
+                  <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                </div>
+                <div>
+                  <h2 id="create-song-title" className="text-xl font-bold text-white">Create New Song</h2>
+                  <p className="text-sm text-musify-text-muted">Upload your track and cover art</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">Song Name</label>
+                  <input placeholder="Enter song title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">Artist (you)</label>
+                  <input value={form.artist || profile?.stageName || ''} readOnly placeholder="Your stage name" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/90 cursor-not-allowed" />
+                </div>
+                <div className="sm:col-span-2 relative">
+                  <label className="block text-sm font-medium text-white/90 mb-2">Category</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={categoryOpen ? categorySearch : form.genre}
+                      onChange={(e) => {
+                        setCategorySearch(e.target.value);
+                        setCategoryOpen(true);
+                      }}
+                      onFocus={() => {
+                        setCategoryOpen(true);
+                        setCategorySearch('');
+                      }}
+                      onBlur={() => setTimeout(() => setCategoryOpen(false), 150)}
+                      placeholder="Search category..."
+                      className="w-full px-4 py-3 pl-10 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none"
+                    />
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-musify-text-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    {categoryOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 py-2 rounded-xl bg-musify-card border border-white/10 shadow-xl max-h-56 overflow-y-auto z-10">
+                        {filteredCategories.length === 0 ? (
+                          <p className="px-4 py-3 text-musify-text-muted text-sm">No category found</p>
+                        ) : (
+                          filteredCategories.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setForm((f) => ({ ...f, genre: cat }));
+                                setCategoryOpen(false);
+                                setCategorySearch('');
+                              }}
+                              className={`w-full px-4 py-2.5 text-left text-sm transition ${form.genre === cat ? 'bg-musify-teal/30 text-musify-teal' : 'text-white hover:bg-white/10'}`}
+                            >
+                              {cat}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="file-zone rounded-2xl p-6">
+                  <label className="flex flex-col items-center justify-center cursor-pointer gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-musify-teal/20 flex items-center justify-center">
+                      <svg className="w-7 h-7 text-musify-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-white">MP3 Song File</p>
+                      <p className="text-sm text-musify-text-muted mt-0.5">{audioFile ? audioFile.name : 'Click or drag to upload'}</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".mp3,.m4a,.wav,.ogg"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setAudioFile(file);
+                        if (file) {
+                          const audio = new Audio();
+                          audio.src = URL.createObjectURL(file);
+                          audio.onloadedmetadata = () => {
+                            setForm((f) => ({ ...f, duration: Math.round(audio.duration) || 180 }));
+                            URL.revokeObjectURL(audio.src);
+                          };
+                          audio.onerror = () => setForm((f) => ({ ...f, duration: 180 }));
+                        }
+                      }}
+                      required
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">Cover Image</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-white/5 shrink-0 border border-white/10">
+                      {imageFile ? (
+                        <img src={URL.createObjectURL(imageFile)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-musify-text-muted">
+                          <svg className="w-8 h-8 mb-1 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          <span className="text-xs">No cover</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="file-zone rounded-xl p-4 flex-1">
+                      <label className="flex flex-col items-center justify-center cursor-pointer gap-2">
+                        <span className="text-sm text-musify-text-muted">{imageFile ? imageFile.name : 'Click to add cover (JPG, PNG)'}</span>
+                        <input type="file" accept=".jpg,.jpeg,.png,.gif,.webp" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="hidden" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button type="submit" disabled={uploading} className="px-8 py-3.5 rounded-xl btn-upload-premium text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                  {uploading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Uploading...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                      Upload Song
+                    </span>
+                  )}
+                </button>
+                <button type="button" onClick={closeModal} className="px-6 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/90 font-medium transition">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
