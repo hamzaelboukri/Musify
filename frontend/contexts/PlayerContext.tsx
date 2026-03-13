@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { streamService } from '@/services/streamService';
-import { favoriteService } from '@/services/favoriteService';
+import { useStreamingSocket } from '@/hooks/useStreamingSocket';
 
 type Song = {
   _id: string;
@@ -29,6 +29,8 @@ type PlayerContextType = {
   seek: (percent: number) => void;
   addToQueue: (song: Song) => void;
   deviceId: string;
+  deviceTakenOverMessage: string | null;
+  dismissDeviceTakenOverMessage: () => void;
 };
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -47,6 +49,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueue] = useState<Song[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [deviceId, setDeviceId] = useState('web');
+  const [deviceTakenOverMessage, setDeviceTakenOverMessage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const setVolume = useCallback((v: number) => {
@@ -61,10 +64,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [volume]);
 
   useEffect(() => {
-    let id = localStorage.getItem('musify_device_id');
+    // Use sessionStorage so each tab/window is a separate "device" (same localStorage = same deviceId = both tabs treated as one)
+    let id = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('musify_device_id') : null;
     if (!id) {
       id = 'web_' + Math.random().toString(36).slice(2) + Date.now();
-      localStorage.setItem('musify_device_id', id);
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('musify_device_id', id);
     }
     setDeviceId(id);
   }, []);
@@ -95,7 +99,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   const play = useCallback(
-    (song: Song, newQueue?: Song[]) => {
+    async (song: Song, newQueue?: Song[]) => {
       const q = newQueue && newQueue.length > 0 ? newQueue : [song];
       const idx = q.findIndex((s) => s._id === song._id);
       const queueIndexToUse = idx >= 0 ? idx : 0;
@@ -104,7 +108,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setQueueIndex(queueIndexToUse);
       setProgress(0);
       setIsPlaying(true);
-      startStreamSession();
+      await startStreamSession(); // Must complete first so other devices are deactivated
       recordPlay(song._id);
       if (audioRef.current) {
         audioRef.current.volume = volume / 100;
@@ -133,6 +137,36 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       audioRef.current.currentTime = 0;
     }
   }, []);
+
+  const dismissDeviceTakenOverMessage = useCallback(() => {
+    setDeviceTakenOverMessage(null);
+  }, []);
+
+  const handleDeviceTakenOver = useCallback(() => {
+    pause(); // Pause but keep song info visible (Spotify-like)
+    setDeviceTakenOverMessage('Another device is playing on your account. Playback stopped.');
+  }, [pause]);
+
+  // Real-time WebSocket (Spotify-like): instant stop when another device starts
+  useStreamingSocket(deviceId, handleDeviceTakenOver);
+
+  // Fallback polling in case WebSocket disconnects
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token || !deviceId || !isPlaying) return;
+    const checkSession = async () => {
+      try {
+        const { data } = await streamService.check(deviceId);
+        if (data?.allowed === false) {
+          handleDeviceTakenOver();
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+    const interval = setInterval(checkSession, 5000);
+    return () => clearInterval(interval);
+  }, [deviceId, isPlaying, handleDeviceTakenOver]);
 
   const toggle = useCallback(() => {
     if (!currentSong) return;
@@ -216,6 +250,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         seek,
         addToQueue,
         deviceId,
+        deviceTakenOverMessage,
+        dismissDeviceTakenOverMessage,
       }}
     >
       {children}

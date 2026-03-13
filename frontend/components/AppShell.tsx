@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { MusicPlayer } from './MusicPlayer';
 import { BlurColors } from './BlurColors';
+import { DeviceTakenOverToast } from './DeviceTakenOverToast';
 
 const DASHBOARD_ROUTES = ['/profile', '/singer-dashboard', '/admin-dashboard'];
 
@@ -18,6 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <>
         <BlurColors />
+        <DeviceTakenOverToast />
         <div className="min-h-screen relative">{children}</div>
         <MusicPlayer />
       </>
@@ -29,6 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <>
         <BlurColors />
+        <DeviceTakenOverToast />
         <div className="min-h-screen relative">{children}</div>
         <MusicPlayer />
       </>
@@ -39,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <BlurColors />
+      <DeviceTakenOverToast />
       <div className="flex min-h-screen relative">
         <Sidebar />
         <div className="flex-1 flex flex-col ml-20">
