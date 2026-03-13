@@ -68,31 +68,6 @@ async function seed() {
     console.log('Created user: user@musify.com / User123!');
   }
 
-  // Create sample songs
-  const songsCount = await songModel.countDocuments();
-  if (songsCount === 0) {
-    const genres = ['Pop', 'Rock', 'Jazz', 'Electronic', 'Hip-Hop'];
-    const songs = [
-      { title: 'Summer Vibes', artist: 'John Star', genre: 'Pop', duration: 210 },
-      { title: 'Midnight Drive', artist: 'John Star', genre: 'Electronic', duration: 245 },
-      { title: 'Acoustic Dreams', artist: 'John Star', genre: 'Jazz', duration: 195 },
-      { title: 'City Lights', artist: 'John Star', genre: 'Pop', duration: 220 },
-      { title: 'Neon Nights', artist: 'John Star', genre: 'Electronic', duration: 230 },
-    ];
-    for (const s of songs) {
-      await songModel.create({
-        ...s,
-        singerId: singerProfile._id,
-        album: 'First Album',
-        coverImage: 'https://picsum.photos/300',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        playCount: Math.floor(Math.random() * 1000),
-        isApproved: true,
-      });
-    }
-    console.log('Created 5 sample songs');
-  }
-
   // Create sample playlist
   const playlistsCount = await playlistModel.countDocuments();
   if (playlistsCount === 0 && user) {

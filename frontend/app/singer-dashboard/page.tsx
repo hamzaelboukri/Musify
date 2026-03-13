@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { singerService } from '@/services/singerService';
-import { BackIcon, DeleteIcon, GridIcon, MusicIcon, ChartIcon, SettingsIcon } from '@/components/icons';
+import { BackIcon, DeleteIcon, GridIcon, MusicIcon, ChartIcon, SettingsIcon, AlbumIcon } from '@/components/icons';
 import { getCoverImageUrl } from '@/utils/coverImage';
+import { albumService } from '@/services/albumService';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -75,12 +76,20 @@ export default function SingerDashboardPage() {
   const [categorySearch, setCategorySearch] = useState('');
   const [songSort, setSongSort] = useState<'newest' | 'plays' | 'title'>('newest');
   const [editingSong, setEditingSong] = useState<Song | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', genre: '' });
+  const [editForm, setEditForm] = useState({ title: '', genre: '', album: '' });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [songsLoading, setSongsLoading] = useState(false);
   const [songsError, setSongsError] = useState<string | null>(null);
   const [songsPage, setSongsPage] = useState(1);
   const SONGS_PER_PAGE = 8;
+  const [albums, setAlbums] = useState<{ _id: string; name: string; artist: string; coverImage?: string; songs: unknown[] }[]>([]);
+  const [showCreateAlbum, setShowCreateAlbum] = useState(false);
+  const [albumForm, setAlbumForm] = useState({ name: '' });
+  const [addToAlbumSong, setAddToAlbumSong] = useState<Song | null>(null);
+  const [albumsLoading, setAlbumsLoading] = useState(false);
+  const [albumSearchOpen, setAlbumSearchOpen] = useState(false);
+  const [albumSearchQuery, setAlbumSearchQuery] = useState('');
+  const [selectedAlbumForCreate, setSelectedAlbumForCreate] = useState<{ _id: string; name: string } | null>(null);
 
   const fetchMySongs = useCallback(() => {
     if (user?.role !== 'SINGER' || !profile?.isApproved) return;
@@ -102,8 +111,18 @@ export default function SingerDashboardPage() {
       .finally(() => setSongsLoading(false));
   }, [user?.role, profile?.isApproved]);
 
+  const fetchMyAlbums = useCallback(() => {
+    if (user?.role !== 'SINGER' || !profile?.isApproved) return;
+    setAlbumsLoading(true);
+    albumService.getMyAlbums()
+      .then(({ data }) => setAlbums(Array.isArray(data) ? data : []))
+      .catch(() => setAlbums([]))
+      .finally(() => setAlbumsLoading(false));
+  }, [user?.role, profile?.isApproved]);
+
   const CATEGORIES = ['Pop', 'Rock', 'Hip-Hop', 'R&B', 'Jazz', 'Electronic', 'Classical', 'Country', 'Reggae', 'Latin', 'Metal', 'Indie', 'Other'];
   const filteredCategories = CATEGORIES.filter((c) => c.toLowerCase().includes(categorySearch.toLowerCase().trim()));
+  const filteredAlbums = albums.filter((a) => a.name.toLowerCase().includes(albumSearchQuery.toLowerCase().trim()));
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -123,12 +142,21 @@ export default function SingerDashboardPage() {
     setImageFile(null);
     setCategoryOpen(false);
     setCategorySearch('');
+    setAlbumSearchOpen(false);
+    setAlbumSearchQuery('');
+    setSelectedAlbumForCreate(null);
   }, [profile?.stageName]);
+
   useEffect(() => {
-    if (!showUpload && !editingSong) return;
+    if (showUpload && profile?.isApproved) fetchMyAlbums();
+  }, [showUpload, profile?.isApproved, fetchMyAlbums]);
+  useEffect(() => {
+    if (!showUpload && !editingSong && !showCreateAlbum && !addToAlbumSong) return;
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (editingSong) setEditingSong(null);
+        else if (addToAlbumSong) setAddToAlbumSong(null);
+        else if (showCreateAlbum) setShowCreateAlbum(false);
         else closeModal();
       }
     };
@@ -138,7 +166,7 @@ export default function SingerDashboardPage() {
       window.removeEventListener('keydown', onEsc);
       document.body.style.overflow = '';
     };
-  }, [showUpload, editingSong, closeModal]);
+  }, [showUpload, editingSong, showCreateAlbum, addToAlbumSong, closeModal]);
 
   useEffect(() => {
     if (profile?.stageName) setForm((f) => ({ ...f, artist: profile.stageName }));
@@ -170,6 +198,12 @@ export default function SingerDashboardPage() {
     }
   }, [activeNav, profile?.isApproved, fetchMySongs]);
 
+  useEffect(() => {
+    if (activeNav === 'albums' && profile?.isApproved) {
+      fetchMyAlbums();
+    }
+  }, [activeNav, profile?.isApproved, fetchMyAlbums]);
+
   // Reset to page 1 when songs or sort changes
   useEffect(() => {
     setSongsPage(1);
@@ -186,25 +220,57 @@ export default function SingerDashboardPage() {
         const { data: imageData } = await singerService.uploadImage(imageFile);
         coverImage = imageData.url;
       }
-      await singerService.uploadSong({
+      const albumName = selectedAlbumForCreate?.name || form.album || '';
+      const { data: newSong } = await singerService.uploadSong({
         ...form,
         artist: form.artist || profile.stageName,
         singerId: profile._id,
         audioUrl: audioData.url,
         coverImage,
+        album: albumName,
       });
+      if (selectedAlbumForCreate && (newSong as { _id?: string })?._id) {
+        await albumService.addSong(selectedAlbumForCreate._id, (newSong as { _id: string })._id);
+      }
       singerService.getMySongs().then(({ data }) => setSongs(data as Song[]));
       singerService.getStats().then(({ data }) => setStats(data as Stats));
+      fetchMyAlbums();
       setShowUpload(false);
       setForm({ title: '', artist: profile.stageName, album: '', genre: '', duration: 180 });
       setAudioFile(null);
       setImageFile(null);
       setCategoryOpen(false);
       setCategorySearch('');
+      setSelectedAlbumForCreate(null);
     } catch (err) {
       console.error(err);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleCreateAlbum = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!albumForm.name.trim()) return;
+    try {
+      await albumService.create({ name: albumForm.name.trim() });
+      fetchMyAlbums();
+      setShowCreateAlbum(false);
+      setAlbumForm({ name: '' });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddSongToAlbum = async (albumId: string) => {
+    if (!addToAlbumSong) return;
+    try {
+      await albumService.addSong(albumId, addToAlbumSong._id);
+      fetchMyAlbums();
+      fetchMySongs();
+      setAddToAlbumSong(null);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -220,6 +286,7 @@ export default function SingerDashboardPage() {
       await singerService.updateSong(editingSong._id, {
         title: editForm.title,
         genre: editForm.genre,
+        album: editForm.album,
         ...(coverImage && { coverImage }),
       });
       fetchMySongs();
@@ -381,6 +448,12 @@ export default function SingerDashboardPage() {
               </div>
               Songs
             </Link>
+            <Link href="/singer-dashboard?nav=albums" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'albums' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <AlbumIcon className="h-4 w-4" />
+              </div>
+              Albums
+            </Link>
             <Link href="/singer-dashboard?nav=streams" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'streams' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <ChartIcon className="h-4 w-4" />
@@ -411,11 +484,17 @@ export default function SingerDashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex gap-1">
-                {['Dashboard', 'Songs', 'Analytics'].map((tab, i) => (
-                  <Link key={tab} href={i === 0 ? '/singer-dashboard' : i === 1 ? '/singer-dashboard?nav=songs' : '/singer-dashboard?nav=streams'} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${(i === 0 && !['songs','streams','profile'].includes(activeNav)) || (i === 1 && activeNav === 'songs') || (i === 2 && activeNav === 'streams') ? 'bg-musify-teal text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
-                    {tab}
-                  </Link>
-                ))}
+                {['Dashboard', 'Songs', 'Albums', 'Analytics'].map((tab, i) => {
+                  const tabs = ['overview', 'songs', 'albums', 'streams'] as const;
+                  const nav = tabs[i] || 'overview';
+                  const href = i === 0 ? '/singer-dashboard' : `/singer-dashboard?nav=${nav}`;
+                  const isActive = (i === 0 && !['songs','albums','streams','profile'].includes(activeNav)) || activeNav === nav;
+                  return (
+                    <Link key={tab} href={href} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${isActive ? 'bg-musify-teal text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                      {tab}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
             <div className="flex-1 max-w-md mx-6">
@@ -534,7 +613,10 @@ export default function SingerDashboardPage() {
                               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                                 <span className={`text-xs font-medium px-2 py-1 rounded-lg ${song.isApproved ? 'bg-musify-teal/90 text-white' : 'bg-amber-500/90 text-white'}`}>{song.isApproved ? 'Live' : 'Pending'}</span>
                                 <div className="flex gap-1">
-                                  <button onClick={(e) => { e.stopPropagation(); setEditingSong(song); setEditForm({ title: song.title, genre: song.genre || '' }); setEditImageFile(null); }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-teal/80 text-white" title="Edit">
+                                  <button onClick={(e) => { e.stopPropagation(); setAddToAlbumSong(song); }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-purple/80 text-white" title="Add to album">
+                                    <AlbumIcon className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={(e) => { e.stopPropagation(); setEditingSong(song); setEditForm({ title: song.title, genre: song.genre || '', album: song.album || '' }); setEditImageFile(null); }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-teal/80 text-white" title="Edit">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                   </button>
                                   <button onClick={async (e) => { e.stopPropagation(); if (confirm('Delete this song?')) { await singerService.deleteSong(song._id); fetchMySongs(); } }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-pink/80 text-white" title="Delete">
@@ -603,6 +685,10 @@ export default function SingerDashboardPage() {
                         <input value={editForm.genre} onChange={(e) => setEditForm((f) => ({ ...f, genre: e.target.value }))} placeholder="e.g. Pop, Rock" className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
                       </div>
                       <div>
+                        <label className="block text-sm font-medium text-white/90 mb-2">Album</label>
+                        <input value={editForm.album} onChange={(e) => setEditForm((f) => ({ ...f, album: e.target.value }))} placeholder="e.g. My First Album" className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
+                      </div>
+                      <div>
                         <label className="block text-sm font-medium text-white/90 mb-2">Cover Image</label>
                         <div className="flex items-center gap-4">
                           <div className="w-20 h-20 rounded-xl overflow-hidden bg-white/5 shrink-0">
@@ -628,6 +714,61 @@ export default function SingerDashboardPage() {
                   </div>
                 </div>
               )}
+            </>
+          )}
+
+          {/* ALBUMS PAGE */}
+          {activeNav === 'albums' && (
+            <>
+              <div className="mb-6">
+                <div className="rounded-2xl bg-musify-card border border-white/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">My Albums</h2>
+                    <p className="text-musify-text-muted text-sm mt-0.5">Create albums and add your songs</p>
+                  </div>
+                  <button onClick={() => setShowCreateAlbum(true)} className="px-5 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition flex items-center gap-2 shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    Create Album
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+                {albumsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <span className="w-10 h-10 border-2 border-musify-teal/40 border-t-musify-teal rounded-full animate-spin" />
+                  </div>
+                ) : albums.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-musify-teal/20 flex items-center justify-center mx-auto mb-4">
+                      <AlbumIcon className="w-8 h-8 text-musify-teal" />
+                    </div>
+                    <p className="text-white font-medium">No albums yet</p>
+                    <p className="text-musify-text-muted text-sm mt-1">Create an album and add your songs to it</p>
+                    <button onClick={() => setShowCreateAlbum(true)} className="mt-4 px-6 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition">
+                      Create Album
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {albums.map((album) => {
+                      const songCount = Array.isArray(album.songs) ? album.songs.length : 0;
+                      const firstSong = Array.isArray(album.songs) && album.songs.length > 0 ? (album.songs[0] as { coverImage?: string }) : null;
+                      const coverUrl = album.coverImage || firstSong?.coverImage;
+                      return (
+                        <div key={album._id} className="rounded-xl bg-white/5 border border-white/10 p-4 hover:border-musify-teal/30 transition">
+                          <Link href={`/album?album=${encodeURIComponent(album.name)}&artist=${encodeURIComponent(album.artist)}`} className="block">
+                            <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
+                              <img src={getCoverImageUrl(coverUrl)} alt={album.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                            </div>
+                            <h3 className="font-semibold text-white truncate">{album.name}</h3>
+                            <p className="text-sm text-musify-text-muted">{songCount} song{songCount !== 1 ? 's' : ''}</p>
+                          </Link>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -697,7 +838,7 @@ export default function SingerDashboardPage() {
           )}
 
           {/* DASHBOARD (overview): Song statistics - platform design */}
-          {!['songs', 'streams', 'profile'].includes(activeNav) && (
+          {!['songs', 'albums', 'streams', 'profile'].includes(activeNav) && (
             <>
               {/* Welcome banner */}
               <div className="mb-6">
@@ -884,6 +1025,89 @@ export default function SingerDashboardPage() {
         </div>
       </main>
 
+      {/* Create Album Modal */}
+      {showCreateAlbum && (
+        <div className="modal-overlay" onClick={() => { setShowCreateAlbum(false); setAlbumForm({ name: '' }); }} role="dialog" aria-modal="true">
+          <div className="modal-content relative p-8 max-w-md" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => { setShowCreateAlbum(false); setAlbumForm({ name: '' }); }} className="modal-close-btn" aria-label="Close">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <form onSubmit={handleCreateAlbum} className="space-y-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/10 pr-12">
+                <div className="w-12 h-12 rounded-2xl bg-musify-purple/20 flex items-center justify-center shrink-0">
+                  <AlbumIcon className="w-6 h-6 text-musify-purple" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Create Album</h2>
+                  <p className="text-sm text-musify-text-muted">Give your album a name</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-2">Album Name</label>
+                <input placeholder="e.g. Summer Vibes 2024" value={albumForm.name} onChange={(e) => setAlbumForm({ name: e.target.value })} required className="w-full px-4 py-3 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none" />
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button type="submit" className="px-8 py-3.5 rounded-xl btn-upload-premium text-white font-semibold transition">Create Album</button>
+                <button type="button" onClick={() => { setShowCreateAlbum(false); setAlbumForm({ name: '' }); }} className="px-6 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/90 font-medium transition">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add to Album Modal */}
+      {addToAlbumSong && (
+        <div className="modal-overlay" onClick={() => setAddToAlbumSong(null)} role="dialog" aria-modal="true">
+          <div className="modal-content relative p-8 max-w-md" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setAddToAlbumSong(null)} className="modal-close-btn" aria-label="Close">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/10 pr-12">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 shrink-0">
+                  <img src={getCoverImageUrl(addToAlbumSong.coverImage)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Add to Album</h2>
+                  <p className="text-sm text-musify-text-muted">{addToAlbumSong.title}</p>
+                </div>
+              </div>
+              {albums.length === 0 ? (
+                <p className="text-musify-text-muted text-sm">No albums yet. Create an album first.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {albums.map((album) => {
+                    const songList = (album.songs || []) as { _id?: string; coverImage?: string }[];
+                    const isInAlbum = songList.some((s) => s?._id === addToAlbumSong._id);
+                    const firstSong = songList[0];
+                    const coverUrl = album.coverImage || firstSong?.coverImage;
+                    return (
+                      <button
+                        key={album._id}
+                        type="button"
+                        onClick={() => !isInAlbum && handleAddSongToAlbum(album._id)}
+                        disabled={isInAlbum}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition ${isInAlbum ? 'bg-white/5 text-musify-text-muted cursor-not-allowed' : 'bg-white/5 hover:bg-musify-teal/20 text-white'}`}
+                      >
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0">
+                          <img src={getCoverImageUrl(coverUrl)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{album.name}</p>
+                          <p className="text-sm text-musify-text-muted">{songList.length} songs</p>
+                        </div>
+                        {isInAlbum ? <span className="text-xs text-musify-teal">Already in album</span> : <span className="text-musify-teal text-sm">Add</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <button type="button" onClick={() => setAddToAlbumSong(null)} className="w-full px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/90 font-medium transition">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Song Modal - popup overlay (visible from any tab) */}
       {showUpload && (
         <div className="modal-overlay" onClick={closeModal} role="dialog" aria-modal="true" aria-labelledby="create-song-title">
@@ -909,6 +1133,60 @@ export default function SingerDashboardPage() {
                 <div>
                   <label className="block text-sm font-medium text-white/90 mb-2">Artist (you)</label>
                   <input value={form.artist || profile?.stageName || ''} readOnly placeholder="Your stage name" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/90 cursor-not-allowed" />
+                </div>
+                <div className="sm:col-span-2 relative">
+                  <label className="block text-sm font-medium text-white/90 mb-2">Add to Album</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={albumSearchOpen ? albumSearchQuery : (selectedAlbumForCreate?.name || form.album || '')}
+                      onChange={(e) => {
+                        setAlbumSearchQuery(e.target.value);
+                        setAlbumSearchOpen(true);
+                        if (!albumSearchOpen) setAlbumSearchQuery('');
+                      }}
+                      onFocus={() => {
+                        setAlbumSearchOpen(true);
+                        setAlbumSearchQuery('');
+                      }}
+                      onBlur={() => setTimeout(() => setAlbumSearchOpen(false), 150)}
+                      placeholder="Search album to add song to..."
+                      className="w-full px-4 py-3 pl-10 rounded-xl input-premium text-white placeholder-musify-text-muted focus:outline-none"
+                    />
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-musify-text-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    {selectedAlbumForCreate && !albumSearchOpen && (
+                      <button type="button" onClick={() => { setSelectedAlbumForCreate(null); setForm((f) => ({ ...f, album: '' })); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-musify-text-muted hover:text-white" title="Clear">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                    {albumSearchOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 py-2 rounded-xl bg-musify-card border border-white/10 shadow-xl max-h-56 overflow-y-auto z-10">
+                        {filteredAlbums.length === 0 ? (
+                          <p className="px-4 py-3 text-musify-text-muted text-sm">No album found. Create one in the Albums tab.</p>
+                        ) : (
+                          filteredAlbums.map((alb) => (
+                            <button
+                              key={alb._id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setSelectedAlbumForCreate({ _id: alb._id, name: alb.name });
+                                setForm((f) => ({ ...f, album: alb.name }));
+                                setAlbumSearchOpen(false);
+                                setAlbumSearchQuery('');
+                              }}
+                              className={`w-full px-4 py-2.5 text-left text-sm transition flex items-center gap-3 ${selectedAlbumForCreate?._id === alb._id ? 'bg-musify-teal/30 text-musify-teal' : 'text-white hover:bg-white/10'}`}
+                            >
+                              <span className="flex-1 truncate">{alb.name}</span>
+                              <span className="text-musify-text-muted text-xs">{(alb.songs || []).length} songs</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="sm:col-span-2 relative">
                   <label className="block text-sm font-medium text-white/90 mb-2">Category</label>

@@ -17,6 +17,9 @@ export class Song {
   @Prop({ default: '' })
   album: string;
 
+  @Prop({ type: Types.ObjectId, ref: 'Album', default: null })
+  albumId: Types.ObjectId | null;
+
   @Prop({ default: '' })
   genre: string;
 
