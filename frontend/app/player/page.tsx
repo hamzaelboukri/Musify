@@ -23,10 +23,10 @@ export default function PlayerPage() {
       {currentSong ? (
         <div className="text-center">
           <img
-            src={getCoverImageUrl(currentSong.coverImage)}
+            src={getCoverImageUrl(currentSong.coverImage, currentSong._id || currentSong.title)}
             alt={currentSong.title}
             className="w-64 h-64 mx-auto rounded-2xl object-cover mb-6 shadow-xl"
-            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+            onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, currentSong._id || currentSong.title); }}
           />
           <h2 className="text-2xl font-bold text-white">{currentSong.title}</h2>
           <p className="text-white/60 mt-1">{currentSong.artist}</p>
@@ -41,7 +41,7 @@ export default function PlayerPage() {
             {queue.map((s, i) => (
               <div key={s._id} className="flex items-center gap-3 p-3 rounded-lg bg-musify-card">
                 <span className="text-white/60 w-6">{i + 1}</span>
-                <img src={getCoverImageUrl(s.coverImage)} alt="" className="w-10 h-10 rounded" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                <img src={getCoverImageUrl(s.coverImage, s._id || s.title)} alt="" className="w-10 h-10 rounded" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, s._id || s.title); }} />
                 <div>
                   <p className="text-white font-medium">{s.title}</p>
                   <p className="text-sm text-white/60">{s.artist}</p>

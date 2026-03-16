@@ -148,8 +148,8 @@ function AddToPlaylistDialog({
           <div className="flex gap-4 items-center">
             <div className="relative shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white/5 shadow-lg ring-1 ring-white/10">
               <img
-                src={getCoverImageUrl(song.coverImage)}
-                onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                src={getCoverImageUrl(song.coverImage, song._id || song.title)}
+                onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
                 alt=""
                 className="w-full h-full object-cover"
               />

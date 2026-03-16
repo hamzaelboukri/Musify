@@ -325,10 +325,10 @@ export default function ProfilePage() {
                     className="flex items-center gap-4 p-4 rounded-xl bg-musify-card/60 border border-white/5 hover:bg-white/5 hover:border-musify-teal/20 transition-all cursor-pointer group"
                   >
                     <img
-                      src={getCoverImageUrl(song.coverImage)}
+                      src={getCoverImageUrl(song.coverImage, song._id)}
                       alt=""
                       className="w-14 h-14 rounded-lg object-cover group-hover:scale-105 transition"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id); }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium truncate">{song.title || 'Unknown'}</p>
@@ -408,10 +408,10 @@ export default function ProfilePage() {
                 >
                   <div className="w-full aspect-square rounded-lg overflow-hidden bg-white/5 mb-3">
                     <img
-                      src={getCoverImageUrl(fav.coverImage)}
+                      src={getCoverImageUrl(fav.coverImage, fav._id)}
                       alt=""
                       className="w-full h-full object-cover group-hover:scale-105 transition"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, fav._id); }}
                     />
                   </div>
                   <p className="text-white font-medium truncate">{fav.title || 'Unknown'}</p>

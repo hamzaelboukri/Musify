@@ -631,7 +631,7 @@ export default function SingerDashboardPage() {
                         .map((song) => (
                           <div key={song._id} className="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-musify-teal/30 hover:bg-white/[0.07] transition-all duration-200">
                             <div className="relative aspect-square">
-                              <img src={getCoverImageUrl(song.coverImage)} alt={song.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                              <img src={getCoverImageUrl(song.coverImage, song._id || song.title)} alt={song.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }} />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                                 <span className={`text-xs font-medium px-2 py-1 rounded-lg ${song.isApproved ? 'bg-musify-teal/90 text-white' : 'bg-amber-500/90 text-white'}`}>{song.isApproved ? 'Live' : 'Pending'}</span>
@@ -718,7 +718,7 @@ export default function SingerDashboardPage() {
                             {editImageFile ? (
                               <img src={URL.createObjectURL(editImageFile)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <img src={getCoverImageUrl(editingSong.coverImage)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                              <img src={getCoverImageUrl(editingSong.coverImage, editingSong._id || editingSong.title)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, editingSong._id || editingSong.title); }} />
                             )}
                           </div>
                           <div className="file-zone rounded-xl p-4 flex-1">
@@ -781,7 +781,7 @@ export default function SingerDashboardPage() {
                         <div key={album._id} className="rounded-xl bg-white/5 border border-white/10 p-4 hover:border-musify-teal/30 transition">
                           <Link href={`/album?album=${encodeURIComponent(album.name)}&artist=${encodeURIComponent(album.artist)}`} className="block">
                             <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
-                              <img src={getCoverImageUrl(coverUrl)} alt={album.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                              <img src={getCoverImageUrl(coverUrl, album._id || album.name)} alt={album.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, album._id || album.name); }} />
                             </div>
                             <h3 className="font-semibold text-white truncate">{album.name}</h3>
                             <p className="text-sm text-musify-text-muted">{songCount} song{songCount !== 1 ? 's' : ''}</p>
@@ -1230,7 +1230,7 @@ export default function SingerDashboardPage() {
             <div className="space-y-6">
               <div className="flex items-center gap-3 pb-4 border-b border-white/10 pr-12">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 shrink-0">
-                  <img src={getCoverImageUrl(addToAlbumSong.coverImage)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                  <img src={getCoverImageUrl(addToAlbumSong.coverImage, addToAlbumSong._id || addToAlbumSong.title)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, addToAlbumSong._id || addToAlbumSong.title); }} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Add to Album</h2>
@@ -1255,7 +1255,7 @@ export default function SingerDashboardPage() {
                         className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition ${isInAlbum ? 'bg-white/5 text-musify-text-muted cursor-not-allowed' : 'bg-white/5 hover:bg-musify-teal/20 text-white'}`}
                       >
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                          <img src={getCoverImageUrl(coverUrl)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                          <img src={getCoverImageUrl(coverUrl, album._id || album.name)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, album._id || album.name); }} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{album.name}</p>

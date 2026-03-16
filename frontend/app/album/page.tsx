@@ -73,7 +73,7 @@ export default function AlbumPage() {
 
   const displayAlbum = album || (songs[0]?.album) || (songs[0] ? 'Single' : '');
   const displayArtist = artist || songs[0]?.artist || '';
-  const coverImage = getCoverImageUrl(songs[0]?.coverImage);
+  const coverImage = getCoverImageUrl(songs[0]?.coverImage, songs[0]?._id || album || 'album');
   const releaseYear = songs[0]?.createdAt ? new Date(songs[0].createdAt).getFullYear() : '';
 
   const handlePlay = () => {
@@ -157,7 +157,7 @@ export default function AlbumPage() {
                 src={coverImage}
                 alt={displayAlbum}
                 className="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-2xl object-cover shadow-2xl shadow-black/50 ring-2 ring-white/10"
-                onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, songs[0]?._id || album || 'album'); }}
               />
             </div>
 
@@ -249,10 +249,10 @@ export default function AlbumPage() {
                 </span>
                 <div className="flex items-center gap-4 min-w-0">
                   <img
-                    src={getCoverImageUrl(song.coverImage || songs[0]?.coverImage)}
+                    src={getCoverImageUrl(song.coverImage || songs[0]?.coverImage, song._id || song.title)}
                     alt=""
                     className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
                   />
                   <div className="min-w-0">
                     <p className={`font-medium truncate ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>

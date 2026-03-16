@@ -17,8 +17,8 @@ export function MusicPlayer() {
       <div className="max-w-[1800px] mx-auto flex items-center gap-4">
         <div className="flex items-center gap-4 min-w-[280px]">
           <img
-            src={getCoverImageUrl(currentSong.coverImage)}
-            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+            src={getCoverImageUrl(currentSong.coverImage, currentSong._id || currentSong.title)}
+            onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, currentSong._id || currentSong.title); }}
             alt={currentSong.title}
             className="w-14 h-14 rounded object-cover shadow-lg"
           />

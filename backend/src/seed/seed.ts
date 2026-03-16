@@ -60,12 +60,12 @@ async function seed() {
   const songsCount = await songModel.countDocuments();
   if (songsCount === 0 && singerProfile) {
     const sampleSongs = [
-      { title: 'Neon Nights', artist: 'John Star', album: 'Electric Dreams', genre: 'Electronic', coverImage: 'https://picsum.photos/seed/neon1/300', duration: 215 },
-      { title: 'City Lights', artist: 'John Star', album: 'Electric Dreams', genre: 'Electronic', coverImage: 'https://picsum.photos/seed/city1/300', duration: 198 },
-      { title: 'Summer Vibes', artist: 'John Star', album: 'Chill Beats', genre: 'Pop', coverImage: 'https://picsum.photos/seed/summer1/300', duration: 245 },
-      { title: 'Acoustic Dreams', artist: 'John Star', album: 'Chill Beats', genre: 'Pop', coverImage: 'https://picsum.photos/seed/acoustic1/300', duration: 182 },
-      { title: 'Midnight Drive', artist: 'John Star', album: 'Night Sessions', genre: 'R&B', coverImage: 'https://picsum.photos/seed/midnight1/300', duration: 267 },
-      { title: 'Synthetic Emotions', artist: 'John Star', album: 'Night Sessions', genre: 'Electronic', coverImage: 'https://picsum.photos/seed/synth1/300', duration: 222 },
+      { title: 'Neon Nights', artist: 'John Star', album: 'Electric Dreams', genre: 'Electronic', coverImage: '', duration: 215 },
+      { title: 'City Lights', artist: 'John Star', album: 'Electric Dreams', genre: 'Electronic', coverImage: '', duration: 198 },
+      { title: 'Summer Vibes', artist: 'John Star', album: 'Chill Beats', genre: 'Pop', coverImage: '', duration: 245 },
+      { title: 'Acoustic Dreams', artist: 'John Star', album: 'Chill Beats', genre: 'Pop', coverImage: '', duration: 182 },
+      { title: 'Midnight Drive', artist: 'John Star', album: 'Night Sessions', genre: 'R&B', coverImage: '', duration: 267 },
+      { title: 'Synthetic Emotions', artist: 'John Star', album: 'Night Sessions', genre: 'Electronic', coverImage: '', duration: 222 },
     ];
     // Use a free sample audio URL (short demo)
     const audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';

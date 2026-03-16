@@ -12,9 +12,8 @@ export function getCoverImageUrl(url: string | undefined, fallbackSeed?: string)
   // S3 / AWS URLs - use as-is (bucket must have public-read)
   if (url.includes('s3.') && url.includes('amazonaws.com')) return url;
   if (url.includes('cloudfront.net')) return url;
-  if (url.includes('picsum.photos') && !url.includes('/seed/')) {
-    return getGradientPlaceholder(url);
-  }
+  // picsum.photos can be slow/blocked - use gradient placeholder instead
+  if (url.includes('picsum.photos')) return getGradientPlaceholder(fallbackSeed || url);
   const uploadsMatch = url.match(/\/uploads\/[^\s?#]+/);
   if (uploadsMatch) return uploadsMatch[0];
   if (url.startsWith('http://') || url.startsWith('https://')) return url;

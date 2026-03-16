@@ -46,7 +46,7 @@ export function AlbumCard({ song }: AlbumCardProps) {
           src={image}
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+          onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
         />
         {addToPlaylist && user && (
           <button

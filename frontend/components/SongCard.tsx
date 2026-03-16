@@ -45,7 +45,7 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
           src={imageUrl}
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-105 transition"
-          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+          onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
         />
         <div
           className={`absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition ${

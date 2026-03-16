@@ -182,25 +182,6 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* Promo card - premium */}
-            <div className="home-card rounded-2xl p-6 overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00d4ff]/15 via-transparent to-transparent opacity-80" />
-              <div className="relative flex flex-col sm:flex-row items-center gap-6">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white">Unlimited Downloads</h3>
-                  <p className="text-[#b3b3b3] text-sm mt-2">Get Premier Membership for unlimited downloads and offline listening.</p>
-                  <button className="mt-4 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] hover:opacity-90 text-black font-bold text-sm transition-all hover:shadow-lg hover:shadow-[#00d4ff]/40 hover:scale-[1.02]">
-                    Subscribe
-                  </button>
-                </div>
-                <div className="w-32 h-32 rounded-2xl bg-[#00d4ff]/20 flex items-center justify-center border border-[#00d4ff]/40">
-                  <svg className="w-16 h-16 text-[#00d4ff]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
             {/* Artists */}
             <section>
               <h2 className="text-xl font-bold text-white mb-5 tracking-tight">Artists</h2>
@@ -245,7 +226,7 @@ export default function HomePage() {
                       href={albumHref}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-all group"
                     >
-                      <img src={getCoverImageUrl(song.coverImage, song._id)} alt="" className="w-12 h-12 rounded-lg object-cover shadow-md" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                      <img src={getCoverImageUrl(song.coverImage, song._id)} alt="" className="w-12 h-12 rounded-lg object-cover shadow-md" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id); }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-white font-medium truncate">{song.title}</p>
                         <p className="text-white/50 text-xs">{formatPlays(song.playCount || 0)} plays · {formatDuration(song.duration)}</p>
