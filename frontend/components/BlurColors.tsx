@@ -15,10 +15,10 @@ export function BlurColors() {
         }}
       />
 
-      {/* Large blur orbs - teal, purple, pink */}
+      {/* Large blur orbs - Spotify green, purple, pink */}
       <div
-        className="absolute -top-40 -right-40 w-[550px] h-[550px] rounded-full opacity-35 blur-[130px]"
-        style={{ background: 'radial-gradient(circle, #06b6d4 0%, #06b6d440 40%, transparent 70%)' }}
+        className="absolute -top-40 -right-40 w-[550px] h-[550px] rounded-full opacity-30 blur-[130px]"
+        style={{ background: 'radial-gradient(circle, #1DB954 0%, #1DB95440 40%, transparent 70%)' }}
       />
       <div
         className="absolute top-1/3 -left-40 w-[450px] h-[450px] rounded-full opacity-30 blur-[110px]"
@@ -30,14 +30,14 @@ export function BlurColors() {
       />
       <div
         className="absolute top-2/3 left-1/4 w-[380px] h-[380px] rounded-full opacity-20 blur-[100px]"
-        style={{ background: 'radial-gradient(circle, #22d3ee 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #1ed760 0%, transparent 70%)' }}
       />
 
       {/* Gradient lines / color streaks */}
       <div
-        className="absolute top-0 left-0 w-full h-80 opacity-25"
+        className="absolute top-0 left-0 w-full h-80 opacity-20"
         style={{
-          background: 'linear-gradient(180deg, rgba(6,182,212,0.5) 0%, rgba(139,92,246,0.2) 40%, transparent 70%)',
+          background: 'linear-gradient(180deg, rgba(29,185,84,0.4) 0%, rgba(139,92,246,0.2) 40%, transparent 70%)',
           filter: 'blur(50px)',
         }}
       />

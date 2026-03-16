@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
+import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -15,7 +16,11 @@ async function bootstrap() {
     if (!existsSync(join(uploadsPath, 'images'))) mkdirSync(join(uploadsPath, 'images'), { recursive: true });
   }
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: true,
+  });
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
   
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
   

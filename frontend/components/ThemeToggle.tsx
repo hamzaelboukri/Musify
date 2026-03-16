@@ -10,13 +10,13 @@ export function ThemeToggle() {
     <button
       onClick={toggleTheme}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-amber-500 dark:hover:text-amber-400/90 hover:bg-zinc-200/80 dark:hover:bg-white/5 transition group"
+      className="w-6 h-6 flex items-center justify-center text-current hover:text-amber-400 transition group shrink-0"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
       {theme === 'dark' ? (
-        <SunIcon size="lg" className="group-hover:scale-110 transition-transform" />
+        <SunIcon size="sm" className="group-hover:scale-110 transition-transform" />
       ) : (
-        <MoonIcon size="lg" className="group-hover:scale-110 transition-transform text-indigo-500 dark:text-indigo-300/90" />
+        <MoonIcon size="sm" className="group-hover:scale-110 transition-transform text-indigo-400" />
       )}
     </button>
   );

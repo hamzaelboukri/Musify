@@ -30,6 +30,15 @@ export class SingersService {
     return profile;
   }
 
+  async updateProfile(userId: string, data: { stageName?: string; bio?: string; image?: string }) {
+    const profile = await this.singerModel.findOne({ userId });
+    if (!profile) throw new NotFoundException('Singer profile not found');
+    if (data.stageName !== undefined) profile.stageName = data.stageName;
+    if (data.bio !== undefined) profile.bio = data.bio;
+    if (data.image !== undefined) profile.image = data.image;
+    return profile.save();
+  }
+
   async getProfileById(id: string) {
     const profile = await this.singerModel.findById(id).populate('userId').lean();
     if (!profile) throw new NotFoundException('Singer not found');

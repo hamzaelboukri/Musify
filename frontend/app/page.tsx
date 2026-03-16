@@ -90,8 +90,19 @@ export default function HomePage() {
 
   const showSearchResults = searchQuery.trim().length > 0;
 
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
-    <div className="min-h-full">
+    <div className="min-h-full bg-[#121212]">
+      {/* Hero gradient - Spotify style */}
+      {!showSearchResults && (
+        <div className="h-64 bg-gradient-to-b from-[#1DB954]/30 via-[#121212] to-[#121212] -mt-1" />
+      )}
       {/* Search results (when typing) */}
       {showSearchResults && (
         <div className="px-6 pt-6 pb-6">
@@ -136,7 +147,7 @@ export default function HomePage() {
               key={g}
               onClick={() => setSelectedGenre(g)}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                selectedGenre === g ? 'bg-musify-teal text-white' : 'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'
+                selectedGenre === g ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'
               }`}
             >
               {g}
@@ -145,7 +156,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="px-6 pb-8">
+      <div className="px-6 pb-8 -mt-48 relative">
+        <h1 className="text-3xl font-bold text-white mb-6">{greeting()}</h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: New Releases + Promo + Artists */}
           <div className="lg:col-span-2 space-y-6">
@@ -165,18 +177,18 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* Promo card */}
-            <div className="rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/30 border border-white/10 p-6 overflow-hidden">
+            {/* Promo card - Spotify style */}
+            <div className="rounded-2xl bg-gradient-to-br from-[#1DB954]/20 via-[#1ed760]/10 to-transparent border border-white/10 p-6 overflow-hidden">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-white">Unlimited Downloads</h3>
-                  <p className="text-white/80 text-sm mt-2">Get Premier Membership for unlimited downloads and offline listening.</p>
-                  <button className="mt-4 px-6 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium transition">
+                  <p className="text-[#b3b3b3] text-sm mt-2">Get Premier Membership for unlimited downloads and offline listening.</p>
+                  <button className="mt-4 px-6 py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold text-sm transition">
                     Subscribe
                   </button>
                 </div>
-                <div className="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center">
-                  <svg className="w-16 h-16 text-musify-teal/50" fill="currentColor" viewBox="0 0 24 24">
+                <div className="w-32 h-32 rounded-full bg-[#1DB954]/20 flex items-center justify-center">
+                  <svg className="w-16 h-16 text-[#1DB954]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                   </svg>
                 </div>
@@ -203,10 +215,10 @@ export default function HomePage() {
           {/* Right: Top hits + Statistics */}
           <div className="space-y-6">
             {/* Top hits */}
-            <div className="rounded-2xl bg-musify-card border border-white/10 p-5">
+            <div className="rounded-2xl bg-[#181818] p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-white">Top hits</h2>
-                <Link href="/" className="text-musify-teal text-sm font-medium hover:underline">See more</Link>
+                <Link href="/" className="text-[#b3b3b3] hover:text-white text-sm font-medium transition">See more</Link>
               </div>
               <div className="space-y-3">
                 {topHits.map((song, i) => {
@@ -241,15 +253,15 @@ export default function HomePage() {
             </div>
 
             {/* Statistics */}
-            <div className="rounded-2xl bg-musify-card border border-white/10 p-5">
+            <div className="rounded-2xl bg-[#181818] p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-white">Statistics</h2>
-                <Link href="/" className="text-musify-teal text-sm font-medium hover:underline">Explore</Link>
+                <Link href="/" className="text-[#b3b3b3] hover:text-white text-sm font-medium transition">Explore</Link>
               </div>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-                  <div className="w-10 h-10 rounded-lg bg-musify-teal/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-musify-teal" fill="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-[#1DB954]/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#1DB954]" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                     </svg>
                   </div>
@@ -258,9 +270,9 @@ export default function HomePage() {
                     <p className="text-white/50 text-xs">Streams</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-                  <div className="w-10 h-10 rounded-lg bg-musify-purple/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-musify-purple" fill="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-[#8b5cf6]/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#8b5cf6]" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
                     </svg>
                   </div>
@@ -269,7 +281,7 @@ export default function HomePage() {
                     <p className="text-white/50 text-xs">Downloads</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
                   <div className="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
                     <svg className="w-5 h-5 text-rose-400" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />

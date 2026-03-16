@@ -66,7 +66,7 @@ export class UploadController {
     FileInterceptor('file', {
       storage: imageMemoryStorage,
       fileFilter: imageFilter,
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB for profile/cover images
     }),
   )
   async uploadImage(@UploadedFile() file: Express.Multer.File) {

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { singerService } from '@/services/singerService';
+import { userService } from '@/services/userService';
 import { BackIcon, DeleteIcon, GridIcon, MusicIcon, ChartIcon, SettingsIcon, AlbumIcon } from '@/components/icons';
 import { getCoverImageUrl } from '@/utils/coverImage';
 import { albumService } from '@/services/albumService';
@@ -50,7 +51,7 @@ type Stats = {
 };
 
 export default function SingerDashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<{ _id: string; stageName: string; isApproved: boolean; bio?: string; image?: string } | null>(null);
@@ -90,6 +91,11 @@ export default function SingerDashboardPage() {
   const [albumSearchOpen, setAlbumSearchOpen] = useState(false);
   const [albumSearchQuery, setAlbumSearchQuery] = useState('');
   const [selectedAlbumForCreate, setSelectedAlbumForCreate] = useState<{ _id: string; name: string } | null>(null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileUpdating, setProfileUpdating] = useState(false);
+  const [profileImageError, setProfileImageError] = useState<string | null>(null);
+  const [profileEditForm, setProfileEditForm] = useState({ stageName: '', bio: '', email: '', name: '' });
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const fetchMySongs = useCallback(() => {
     if (user?.role !== 'SINGER' || !profile?.isApproved) return;
@@ -171,6 +177,15 @@ export default function SingerDashboardPage() {
   useEffect(() => {
     if (profile?.stageName) setForm((f) => ({ ...f, artist: profile.stageName }));
   }, [profile?.stageName]);
+
+  useEffect(() => {
+    if (profile || user) setProfileEditForm({
+      stageName: profile?.stageName || '',
+      bio: profile?.bio || '',
+      email: user?.email || '',
+      name: user?.name || '',
+    });
+  }, [profile?.stageName, profile?.bio, user?.email, user?.name]);
 
   useEffect(() => {
     if (user?.role === 'SINGER') {
@@ -514,8 +529,12 @@ export default function SingerDashboardPage() {
                   <p className="text-sm font-medium text-white">{profile?.stageName || user?.name || 'Artist'}</p>
                   <p className="text-xs text-musify-text-muted">{user?.email || ''}</p>
                 </div>
-                <Link href="/singer-dashboard?nav=profile" className="w-10 h-10 rounded-full bg-musify-teal/20 flex items-center justify-center text-musify-teal font-bold">
-                  {profile?.stageName?.[0]?.toUpperCase() || user?.name?.[0] || '?'}
+                <Link href="/singer-dashboard?nav=profile" className="w-10 h-10 rounded-full overflow-hidden bg-musify-teal/20 flex items-center justify-center text-musify-teal font-bold shrink-0">
+                  {profile?.image ? (
+                    <img src={getCoverImageUrl(profile.image)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    profile?.stageName?.[0]?.toUpperCase() || user?.name?.[0] || '?'
+                  )}
                 </Link>
               </div>
             </div>
@@ -530,8 +549,12 @@ export default function SingerDashboardPage() {
               <div className="mb-6">
                 <div className="rounded-2xl bg-musify-card border border-white/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center text-2xl font-bold text-musify-teal">
-                      {profile?.stageName?.[0]?.toUpperCase() || '?'}
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center text-2xl font-bold text-musify-teal shrink-0">
+                      {profile?.image ? (
+                        <img src={getCoverImageUrl(profile.image)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        profile?.stageName?.[0]?.toUpperCase() || '?'
+                      )}
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">{profile?.stageName || 'Artist'}</h2>
@@ -1012,14 +1035,156 @@ export default function SingerDashboardPage() {
             </>
           )}
 
-          {/* PROFILE PAGE */}
+          {/* PROFILE PAGE - Premium neon design */}
           {activeNav === 'profile' && (
-            <div className="rounded-2xl bg-musify-card border border-white/10 p-8 text-center">
-              <div className="w-20 h-20 rounded-full bg-musify-teal/20 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl font-bold text-musify-teal">{profile?.stageName?.[0]?.toUpperCase() || '?'}</span>
+            <div className="space-y-6">
+              {/* Hero gradient - refined cyan/emerald/purple */}
+              <div className="h-48 rounded-2xl bg-gradient-to-br from-cyan-500/25 via-emerald-500/20 to-violet-500/25 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(34,211,238,0.3)_0%,transparent_50%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(139,92,246,0.25)_0%,transparent_50%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.2)_0%,transparent_60%)]" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">{profile?.stageName || 'Artist'}</h3>
-              <p className="text-musify-text-muted text-sm">{user?.email}</p>
+
+              {/* Main profile card - neon */}
+              <div className="profile-neon-card rounded-2xl p-8 -mt-24 relative">
+                <div className="flex flex-col lg:flex-row gap-8">
+                  {/* Avatar with neon glow */}
+                  <div className="flex flex-col items-center lg:items-start">
+                    <label className="relative group cursor-pointer shrink-0">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !profile) return;
+                          const maxSize = 2 * 1024 * 1024;
+                          if (file.size > maxSize) {
+                            setProfileImageError('Image must be under 2MB.');
+                            setTimeout(() => setProfileImageError(null), 4000);
+                            e.target.value = '';
+                            return;
+                          }
+                          setProfileImageError(null);
+                          setProfileUpdating(true);
+                          try {
+                            const { data: imgData } = await singerService.uploadImage(file);
+                            await singerService.updateProfile({ image: imgData.url });
+                            setProfile((p) => (p ? { ...p, image: imgData.url } : null));
+                          } catch (err) {
+                            setProfileImageError((err as { response?: { status?: number } })?.response?.status === 413 ? 'Image too large. Max 2MB.' : 'Upload failed.');
+                            setTimeout(() => setProfileImageError(null), 4000);
+                          } finally {
+                            setProfileUpdating(false);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      <div className="profile-avatar-glow w-32 h-32 rounded-2xl overflow-hidden bg-gradient-to-br from-cyan-500/25 to-violet-500/25 flex items-center justify-center border border-cyan-400/20 transition-all duration-300">
+                        {profile?.image ? (
+                          <img src={getCoverImageUrl(profile.image)} alt={profile.stageName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-5xl font-bold text-cyan-400">{profile?.stageName?.[0]?.toUpperCase() || '?'}</span>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                        <span className="text-sm font-medium text-white">{profileUpdating ? '...' : 'Change photo'}</span>
+                      </div>
+                    </label>
+                    {profileImageError && <p className="text-amber-400 text-xs mt-2">{profileImageError}</p>}
+                  </div>
+
+                  {/* Info & edit form */}
+                  <div className="flex-1 space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-cyan-400/80 mb-2">Stage Name</label>
+                      <input
+                        value={profileEditForm.stageName || profile?.stageName || ''}
+                        onChange={(e) => setProfileEditForm((f) => ({ ...f, stageName: e.target.value }))}
+                        placeholder="Your artist name"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-cyan-500/15 text-white placeholder-white/40 focus:outline-none focus:border-cyan-400/40 focus:ring-2 focus:ring-cyan-500/15 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-violet-400/80 mb-2">Bio</label>
+                      <textarea
+                        value={profileEditForm.bio || profile?.bio || ''}
+                        onChange={(e) => setProfileEditForm((f) => ({ ...f, bio: e.target.value }))}
+                        placeholder="Tell fans about yourself..."
+                        rows={4}
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-violet-500/15 text-white placeholder-white/40 focus:outline-none focus:border-violet-400/40 focus:ring-2 focus:ring-violet-500/15 transition resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-emerald-400/80 mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={profileEditForm.email || user?.email || ''}
+                        onChange={(e) => setProfileEditForm((f) => ({ ...f, email: e.target.value }))}
+                        placeholder="your@email.com"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-emerald-500/15 text-white placeholder-white/40 focus:outline-none focus:border-emerald-400/40 focus:ring-2 focus:ring-emerald-500/15 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-amber-400/80 mb-2">Display Name</label>
+                      <input
+                        value={profileEditForm.name || user?.name || ''}
+                        onChange={(e) => setProfileEditForm((f) => ({ ...f, name: e.target.value }))}
+                        placeholder="Your name"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-amber-500/15 text-white placeholder-white/40 focus:outline-none focus:border-amber-400/40 focus:ring-2 focus:ring-amber-500/15 transition"
+                      />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={async () => {
+                          setProfileSaving(true);
+                          try {
+                            await singerService.updateProfile({
+                              stageName: profileEditForm.stageName || profile?.stageName,
+                              bio: profileEditForm.bio || profile?.bio,
+                            });
+                            setProfile((p) => p ? { ...p, stageName: profileEditForm.stageName || p.stageName, bio: profileEditForm.bio ?? p.bio } : null);
+                            const userPayload: { name?: string; email?: string } = {};
+                            if (profileEditForm.email && profileEditForm.email !== user?.email) userPayload.email = profileEditForm.email;
+                            if (profileEditForm.name && profileEditForm.name !== user?.name) userPayload.name = profileEditForm.name;
+                            if (Object.keys(userPayload).length > 0) {
+                              const { data: updatedUser } = await userService.updateProfile(userPayload);
+                              const d = updatedUser as { _id?: string; name: string; email: string; role?: string };
+                              setUser({ id: String(d._id ?? user?.id ?? ''), name: d.name, email: d.email, role: (d.role as 'USER' | 'SINGER' | 'ADMIN') || user?.role || 'USER' });
+                            }
+                          } catch (err) {
+                            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                            if (msg) setProfileImageError(msg);
+                            setTimeout(() => setProfileImageError(null), 4000);
+                          } finally {
+                            setProfileSaving(false);
+                          }
+                        }}
+                        disabled={profileSaving}
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-semibold shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_25px_rgba(139,92,246,0.2)] transition disabled:opacity-60"
+                      >
+                        {profileSaving ? 'Saving...' : 'Save changes'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats row - refined colors */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-xl bg-white/5 border border-cyan-500/15 p-4 hover:border-cyan-400/30 hover:shadow-[0_0_20px_rgba(34,211,238,0.12)] transition">
+                  <p className="text-cyan-400 font-bold text-2xl neon-pulse">{songs.length}</p>
+                  <p className="text-white/50 text-sm">Songs</p>
+                </div>
+                <div className="rounded-xl bg-white/5 border border-violet-500/15 p-4 hover:border-violet-400/30 hover:shadow-[0_0_20px_rgba(139,92,246,0.12)] transition">
+                  <p className="text-violet-400 font-bold text-2xl">{(stats?.totalPlays ?? 0).toLocaleString()}</p>
+                  <p className="text-white/50 text-sm">Total plays</p>
+                </div>
+                <div className="rounded-xl bg-white/5 border border-emerald-500/15 p-4 hover:border-emerald-400/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.12)] transition">
+                  <p className="text-emerald-400 font-bold text-2xl">{profile?.isApproved ? 'Verified' : 'Pending'}</p>
+                  <p className="text-white/50 text-sm">Status</p>
+                </div>
+              </div>
             </div>
           )}
         </div>

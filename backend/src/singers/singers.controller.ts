@@ -36,6 +36,16 @@ export class SingersController {
     return this.singersService.getProfileByUserId(userId);
   }
 
+  @Patch('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SINGER', 'ADMIN')
+  updateProfile(
+    @CurrentUser('_id') userId: string,
+    @Body() body: { stageName?: string; bio?: string; image?: string },
+  ) {
+    return this.singersService.updateProfile(userId, body);
+  }
+
   @Public()
   @Get()
   getAllApproved() {

@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <DeviceTakenOverToast />
       <div className="flex min-h-screen relative">
         <Sidebar />
-        <div className="flex-1 flex flex-col ml-20">
+        <div className="flex-1 flex flex-col ml-60 min-w-0">
           <TopHeader />
           <main className="flex-1 overflow-y-auto pb-24">{children}</main>
         </div>

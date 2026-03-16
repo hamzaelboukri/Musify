@@ -36,10 +36,10 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
 
   return (
     <div
-      className="group p-4 rounded-xl bg-musify-card hover:bg-white/5 transition cursor-pointer"
+      className="group p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition cursor-pointer"
       onClick={() => play(song, queue)}
     >
-      <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
+      <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-[#333] shadow-lg">
         <img
           src={getCoverImageUrl(song.coverImage)}
           alt={song.title}
@@ -51,7 +51,7 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
             isCurrent && isPlaying ? 'opacity-100' : ''
           }`}
         >
-          <div className="w-14 h-14 rounded-full bg-musify-accent flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-[#1DB954] flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.3)]">
             {isCurrent && isPlaying ? (
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
@@ -86,7 +86,7 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
             className="absolute top-2 right-2 p-2 rounded-full bg-black/50 hover:bg-black/70"
           >
             {isFavorite ? (
-              <svg className="w-5 h-5 text-musify-accent" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#1DB954]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
               </svg>
             ) : (

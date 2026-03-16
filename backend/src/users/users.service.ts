@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
@@ -31,8 +31,16 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, data: Partial<User>) {
-    const { password, ...updateData } = data as any;
-    return this.userModel.findByIdAndUpdate(userId, updateData, { new: true });
+    const { password, refreshToken, ...updateData } = data as any;
+    if (updateData.email) {
+      const existing = await this.userModel.findOne({ email: updateData.email });
+      if (existing && existing._id.toString() !== userId) {
+        throw new ConflictException('Email already in use');
+      }
+    }
+    const updated = await this.userModel.findByIdAndUpdate(userId, updateData, { new: true }).select('-password -refreshToken');
+    if (!updated) throw new NotFoundException('User not found');
+    return updated;
   }
 
   async followSinger(userId: string, singerId: string) {

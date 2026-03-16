@@ -39,9 +39,9 @@ export function AlbumCard({ song }: AlbumCardProps) {
   return (
     <Link
       href={albumHref(song)}
-      className="group block p-4 rounded-lg bg-musify-card hover:bg-musify-card-hover transition cursor-pointer"
+      className="group block p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition cursor-pointer"
     >
-      <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
+      <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-[#333] shadow-lg">
         <img
           src={image}
           alt={song.title}
@@ -74,7 +74,7 @@ export function AlbumCard({ song }: AlbumCardProps) {
               e.stopPropagation();
               play(song);
             }}
-            className="w-14 h-14 rounded-full bg-musify-accent flex items-center justify-center shadow-lg shadow-cyan-500/40 hover:scale-110 transition cursor-pointer"
+            className="w-14 h-14 rounded-full bg-[#1DB954] flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.3)] hover:scale-110 transition cursor-pointer"
           >
             {isCurrent && isPlaying ? (
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">

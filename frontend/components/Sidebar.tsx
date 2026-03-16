@@ -20,73 +20,77 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-20 z-30 bg-zinc-100 dark:bg-musify-sidebar flex flex-col items-center py-6 border-r border-zinc-200 dark:border-white/5">
-      <Link href="/" className="mb-8">
+    <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 bg-black flex flex-col py-6 border-r border-white/5">
+      <Link href="/" className="px-6 mb-6 flex items-center gap-3">
         <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
+        <span className="text-xl font-bold text-white">Musify</span>
       </Link>
 
-      <nav className="flex flex-col items-center gap-2 flex-1">
+      <nav className="flex flex-col gap-1 px-3 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href === '/' && pathname === '/') || (item.href === '/search' && pathname.startsWith('/search'));
           return (
             <Link
               key={item.label}
               href={item.href}
-              title={item.label}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
-                isActive ? 'bg-musify-teal/20 text-musify-teal dark:text-musify-teal' : 'text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5'
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
+                isActive ? 'bg-white/10 text-white' : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
               }`}
             >
-              <item.icon className="w-6 h-6" />
+              <item.icon className="w-6 h-6 shrink-0" />
+              <span className="font-medium">{item.label}</span>
             </Link>
           );
         })}
 
-        <div className="mt-auto pt-6 border-t border-zinc-200 dark:border-white/10 flex flex-col items-center gap-2">
-          <ThemeToggle />
+        <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-1">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition">
+            <ThemeToggle />
+            <span className="font-medium">Theme</span>
+          </div>
           <Link
             href="/playlists"
-            title="Create Playlist"
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
           >
-            <PlusIcon className="w-6 h-6" />
+            <PlusIcon className="w-6 h-6 shrink-0" />
+            <span className="font-medium">Create Playlist</span>
           </Link>
           {user?.role === 'SINGER' && (
             <Link
               href="/singer-dashboard"
-              title="Dashboard"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
             >
-              <DashboardIcon className="w-6 h-6" />
+              <DashboardIcon className="w-6 h-6 shrink-0" />
+              <span className="font-medium">Dashboard</span>
             </Link>
           )}
           {user?.role === 'ADMIN' && (
             <Link
               href="/admin-dashboard"
-              title="Admin"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
             >
-              <ShieldIcon className="w-6 h-6" />
+              <ShieldIcon className="w-6 h-6 shrink-0" />
+              <span className="font-medium">Admin</span>
             </Link>
           )}
           <Link
-            href={user?.role === 'SINGER' ? '/singer-dashboard?tab=profile' : '/profile'}
-            title="Profile"
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
+            href={user?.role === 'SINGER' ? '/singer-dashboard?nav=profile' : '/profile'}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
               (user?.role === 'SINGER' ? isSingerProfile : pathname === '/profile')
-                ? 'bg-musify-teal/20 text-musify-teal'
-                : 'text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5'
+                ? 'bg-white/10 text-white'
+                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
             }`}
           >
-            <SettingsIcon className="w-6 h-6" />
+            <SettingsIcon className="w-6 h-6 shrink-0" />
+            <span className="font-medium">Profile</span>
           </Link>
           {user && (
             <button
               onClick={async () => { await logout(); window.location.href = '/'; }}
-              title="Log out"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-600 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition w-full text-left"
             >
-              <LogoutIcon className="w-6 h-6" />
+              <LogoutIcon className="w-6 h-6 shrink-0" />
+              <span className="font-medium">Log out</span>
             </button>
           )}
         </div>
