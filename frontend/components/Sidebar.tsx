@@ -20,7 +20,7 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 bg-black flex flex-col py-6 border-r border-white/5">
+    <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 bg-[#0a0a0a] flex flex-col py-6 border-r border-white/5">
       <Link href="/" className="px-6 mb-6 flex items-center gap-3">
         <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
         <span className="text-xl font-bold text-white">Musify</span>
@@ -33,8 +33,8 @@ export function Sidebar() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
-                isActive ? 'bg-white/10 text-white' : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
+                isActive ? 'bg-[#00d4ff]/20 text-[#00d4ff] border border-[#00d4ff]/40' : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
               }`}
             >
               <item.icon className="w-6 h-6 shrink-0" />

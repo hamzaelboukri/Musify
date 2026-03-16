@@ -34,18 +34,18 @@ export function AlbumCard({ song }: AlbumCardProps) {
   const addToPlaylist = useAddToPlaylist();
   const { user } = useAuth();
   const isCurrent = currentSong?._id === song._id;
-  const image = getCoverImageUrl(song.coverImage);
+  const image = getCoverImageUrl(song.coverImage, song._id || song.title);
 
   return (
     <Link
       href={albumHref(song)}
-      className="group block p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition cursor-pointer"
+      className="album-card-premium group block p-4 cursor-pointer"
     >
-      <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-[#333] shadow-lg">
+      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-[#2a2a2e] shadow-xl">
         <img
           src={image}
           alt={song.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
         />
         {addToPlaylist && user && (
@@ -74,7 +74,7 @@ export function AlbumCard({ song }: AlbumCardProps) {
               e.stopPropagation();
               play(song);
             }}
-            className="w-14 h-14 rounded-full bg-[#1DB954] flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.3)] hover:scale-110 transition cursor-pointer"
+            className="play-btn-glow w-14 h-14 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] flex items-center justify-center hover:scale-110 transition-all duration-200 cursor-pointer"
           >
             {isCurrent && isPlaying ? (
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -88,8 +88,8 @@ export function AlbumCard({ song }: AlbumCardProps) {
           </div>
         </div>
       </div>
-      <h3 className="font-semibold text-white truncate">{song.title}</h3>
-      <p className="text-sm text-white/60 truncate mt-0.5">{song.artist}</p>
+      <h3 className="font-semibold text-white truncate text-[15px]">{song.title}</h3>
+      <p className="text-sm text-white/55 truncate mt-1">{song.artist}</p>
     </Link>
   );
 }

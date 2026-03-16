@@ -11,47 +11,47 @@ export function BlurColors() {
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(180deg, #0d0d0d 0%, #121212 40%, #0f0f0f 100%)',
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 50%, #0a0a0a 100%)',
         }}
       />
 
-      {/* Large blur orbs - Spotify green, purple, pink */}
+      {/* Neon blue blur orbs */}
       <div
         className="absolute -top-40 -right-40 w-[550px] h-[550px] rounded-full opacity-30 blur-[130px]"
-        style={{ background: 'radial-gradient(circle, #1DB954 0%, #1DB95440 40%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #00d4ff 0%, #00d4ff40 40%, transparent 70%)' }}
       />
       <div
-        className="absolute top-1/3 -left-40 w-[450px] h-[450px] rounded-full opacity-30 blur-[110px]"
-        style={{ background: 'radial-gradient(circle, #8b5cf6 0%, #8b5cf640 40%, transparent 70%)' }}
+        className="absolute top-1/3 -left-40 w-[450px] h-[450px] rounded-full opacity-25 blur-[110px]"
+        style={{ background: 'radial-gradient(circle, #00bfff 0%, #00bfff40 40%, transparent 70%)' }}
       />
       <div
         className="absolute -bottom-40 right-1/4 w-[500px] h-[500px] rounded-full opacity-25 blur-[120px]"
-        style={{ background: 'radial-gradient(circle, #ec4899 0%, #ec489940 40%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #0080ff 0%, #0080ff40 40%, transparent 70%)' }}
       />
       <div
         className="absolute top-2/3 left-1/4 w-[380px] h-[380px] rounded-full opacity-20 blur-[100px]"
-        style={{ background: 'radial-gradient(circle, #1ed760 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, #00d4ff 0%, transparent 70%)' }}
       />
 
-      {/* Gradient lines / color streaks */}
+      {/* Neon blue gradient streaks */}
       <div
-        className="absolute top-0 left-0 w-full h-80 opacity-20"
+        className="absolute top-0 left-0 w-full h-80 opacity-25"
         style={{
-          background: 'linear-gradient(180deg, rgba(29,185,84,0.4) 0%, rgba(139,92,246,0.2) 40%, transparent 70%)',
+          background: 'linear-gradient(180deg, rgba(0,212,255,0.35) 0%, rgba(0,191,255,0.15) 40%, transparent 70%)',
           filter: 'blur(50px)',
         }}
       />
       <div
         className="absolute bottom-0 right-0 w-[500px] h-72 opacity-20"
         style={{
-          background: 'linear-gradient(45deg, transparent 30%, rgba(139,92,246,0.6) 60%, rgba(236,72,153,0.4) 100%)',
+          background: 'linear-gradient(45deg, transparent 30%, rgba(0,212,255,0.4) 60%, rgba(0,128,255,0.3) 100%)',
           filter: 'blur(70px)',
         }}
       />
       <div
         className="absolute top-1/2 -left-20 w-96 h-48 opacity-18"
         style={{
-          background: 'linear-gradient(90deg, rgba(139,92,246,0.5) 0%, rgba(6,182,212,0.2) 60%, transparent 100%)',
+          background: 'linear-gradient(90deg, rgba(0,212,255,0.3) 0%, rgba(0,191,255,0.2) 60%, transparent 100%)',
           filter: 'blur(55px)',
         }}
       />

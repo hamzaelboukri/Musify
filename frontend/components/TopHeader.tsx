@@ -23,7 +23,7 @@ export function TopHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-[#121212]/80 backdrop-blur-md px-6 py-4 flex items-center gap-6 border-b border-white/5">
+    <header className="sticky top-0 z-20 bg-[#0d0d0d]/95 backdrop-blur-xl px-6 py-4 flex items-center gap-6 border-b border-white/5">
       <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl">
         <div className="relative">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="currentColor" viewBox="0 0 24 24">
@@ -34,7 +34,7 @@ export function TopHeader() {
             placeholder="Search songs, artists, albums..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-12 py-2.5 rounded-full bg-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 border border-transparent"
+            className="w-full pl-12 pr-12 py-2.5 rounded-xl bg-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#00d4ff]/40 focus:border-[#00d4ff]/30 border border-transparent"
             aria-label="Search"
           />
           {searchQuery ? (
@@ -72,7 +72,7 @@ export function TopHeader() {
             </div>
           </Link>
         ) : (
-          <Link href="/login" className="px-5 py-2.5 rounded-full bg-white text-black text-sm font-bold hover:scale-105 transition">
+          <Link href="/login" className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00d4ff] to-[#00bfff] text-black text-sm font-bold hover:opacity-90 hover:scale-105 transition shadow-lg shadow-[#00d4ff]/20">
             Log in
           </Link>
         )}

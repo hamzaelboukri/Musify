@@ -2,6 +2,12 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.amazonaws.com', pathname: '/**' },
+      { protocol: 'https', hostname: '**.cloudfront.net', pathname: '/**' },
+    ],
+  },
   async rewrites() {
     return [
       {

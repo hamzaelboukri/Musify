@@ -50,10 +50,40 @@ async function seed() {
       userId: singerUser._id,
       stageName: 'John Star',
       bio: 'Award-winning artist',
-      image: 'https://picsum.photos/200',
+      image: 'https://picsum.photos/seed/johnstar/200',
       isApproved: true,
     });
     console.log('Created singer profile: John Star');
+  }
+
+  // Create sample songs (only if none exist)
+  const songsCount = await songModel.countDocuments();
+  if (songsCount === 0 && singerProfile) {
+    const sampleSongs = [
+      { title: 'Neon Nights', artist: 'John Star', album: 'Electric Dreams', genre: 'Electronic', coverImage: 'https://picsum.photos/seed/neon1/300', duration: 215 },
+      { title: 'City Lights', artist: 'John Star', album: 'Electric Dreams', genre: 'Electronic', coverImage: 'https://picsum.photos/seed/city1/300', duration: 198 },
+      { title: 'Summer Vibes', artist: 'John Star', album: 'Chill Beats', genre: 'Pop', coverImage: 'https://picsum.photos/seed/summer1/300', duration: 245 },
+      { title: 'Acoustic Dreams', artist: 'John Star', album: 'Chill Beats', genre: 'Pop', coverImage: 'https://picsum.photos/seed/acoustic1/300', duration: 182 },
+      { title: 'Midnight Drive', artist: 'John Star', album: 'Night Sessions', genre: 'R&B', coverImage: 'https://picsum.photos/seed/midnight1/300', duration: 267 },
+      { title: 'Synthetic Emotions', artist: 'John Star', album: 'Night Sessions', genre: 'Electronic', coverImage: 'https://picsum.photos/seed/synth1/300', duration: 222 },
+    ];
+    // Use a free sample audio URL (short demo)
+    const audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    for (const s of sampleSongs) {
+      await songModel.create({
+        title: s.title,
+        artist: s.artist,
+        singerId: singerProfile._id,
+        album: s.album,
+        genre: s.genre,
+        coverImage: s.coverImage,
+        audioUrl,
+        duration: s.duration,
+        playCount: Math.floor(Math.random() * 5000),
+        isApproved: true,
+      });
+    }
+    console.log(`Created ${sampleSongs.length} sample songs`);
   }
 
   // Create User

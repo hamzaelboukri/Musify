@@ -13,7 +13,7 @@ export function MusicPlayer() {
   const formatTime = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#181818] border-t border-white/10 px-4 py-2">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#121212]/98 backdrop-blur-sm border-t border-white/5 px-4 py-2">
       <div className="max-w-[1800px] mx-auto flex items-center gap-4">
         <div className="flex items-center gap-4 min-w-[280px]">
           <img
@@ -47,7 +47,7 @@ export function MusicPlayer() {
             </button>
             <button
               onClick={toggle}
-              className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all"
+              className="relative w-12 h-12 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] flex items-center justify-center text-black hover:opacity-90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#00d4ff]/40"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
@@ -80,7 +80,7 @@ export function MusicPlayer() {
               value={progress}
               onChange={(e) => seek(parseFloat(e.target.value))}
               style={{
-                background: `linear-gradient(to right, #fff 0%, #fff ${progress}%, rgba(255,255,255,0.3) ${progress}%)`,
+                background: `linear-gradient(to right, #00d4ff 0%, #00bfff ${progress}%, rgba(255,255,255,0.15) ${progress}%)`,
               }}
               className="flex-1 h-1 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_#181818] [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
             />
