@@ -165,6 +165,12 @@ const ArrowUpRightIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const DownloadIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+  </svg>
+);
+
 function KPICard({
   label,
   value,
@@ -248,6 +254,60 @@ export default function AdminDashboardPage() {
     adminService.getPendingSingers().then(({ data }) => setPendingSingers(data));
     adminService.getAllSongs().then(({ data }) => setAllSongs(data));
     adminService.getSessions().then(({ data }) => setSessions(data));
+  };
+
+  const escapeCsv = (v: unknown): string => {
+    const s = String(v ?? '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+
+  const exportData = () => {
+    const ts = new Date().toISOString().slice(0, 10);
+    let csv = '';
+    let filename = '';
+
+    if (tab === 'overview') {
+      const rows = [
+        ['Metric', 'Value'],
+        ['Total Users', stats?.totalUsers ?? 0],
+        ['Listeners', stats?.listeners ?? 0],
+        ['Artists', stats?.artists ?? 0],
+        ['Admins', stats?.admins ?? 0],
+        ['Pending Singers', stats?.pendingSingers ?? 0],
+        ['Total Songs', stats?.totalSongs ?? 0],
+        ['Pending Songs', stats?.pendingSongs ?? 0],
+        ['Total Plays', stats?.totalPlays ?? 0],
+        ['Banned Users', stats?.bannedUsers ?? 0],
+      ];
+      csv = rows.map((r) => r.map(escapeCsv).join(',')).join('\n');
+      filename = `musify-overview-${ts}.csv`;
+    } else if (tab === 'users') {
+      const cols = ['name', 'email', 'role', 'isBanned'];
+      csv = [cols.join(','), ...filteredUsers.map((u) => cols.map((c) => escapeCsv((u as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-users-${ts}.csv`;
+    } else if (tab === 'singers') {
+      const cols = ['stageName', 'userId.email'];
+      csv = [cols.join(','), ...filteredSingers.map((s) => cols.map((c) => escapeCsv((s as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-singers-${ts}.csv`;
+    } else if (tab === 'songs') {
+      const cols = ['title', 'artist'];
+      csv = [cols.join(','), ...filteredSongs.map((s) => cols.map((c) => escapeCsv((s as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-songs-${ts}.csv`;
+    } else if (tab === 'sessions') {
+      const cols = ['userId.name', 'deviceId', 'lastActivity'];
+      csv = [cols.join(','), ...filteredSessions.map((s) => cols.map((c) => escapeCsv((s as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-sessions-${ts}.csv`;
+    }
+
+    if (!csv) return;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Filtered data
@@ -451,7 +511,11 @@ export default function AdminDashboardPage() {
               <AddIcon className="w-4 h-4" />
               Refresh Data
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-musify-card border border-musify-teal/50 text-musify-teal hover:bg-musify-teal/10 font-medium transition-all duration-200">
+            <button
+              onClick={exportData}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-musify-card border border-musify-teal/50 text-musify-teal hover:bg-musify-teal/10 font-medium transition-all duration-200"
+            >
+              <DownloadIcon className="w-4 h-4" />
               Export Data
             </button>
           </div>
