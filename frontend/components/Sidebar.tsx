@@ -74,6 +74,15 @@ export function Sidebar() {
             </Link>
           )}
           <Link
+            href="/about"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
+              pathname === '/about' ? 'bg-white/10 text-white' : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <InfoIcon className="w-6 h-6 shrink-0" />
+            <span className="font-medium">How it works</span>
+          </Link>
+          <Link
             href={user?.role === 'SINGER' ? '/singer-dashboard?nav=profile' : '/profile'}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
               (user?.role === 'SINGER' ? isSingerProfile : pathname === '/profile')
@@ -151,6 +160,14 @@ function ShieldIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+    </svg>
+  );
+}
+
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
     </svg>
   );
 }

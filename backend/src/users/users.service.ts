@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
@@ -74,11 +74,22 @@ export class UsersService {
       .lean();
   }
 
-  async banUser(userId: string) {
-    return this.userModel.findByIdAndUpdate(userId, { isBanned: true }, { new: true });
+  async banUser(userId: string, currentUserId?: string) {
+    if (currentUserId && userId === currentUserId) {
+      throw new BadRequestException('You cannot ban yourself');
+    }
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    return this.userModel.findByIdAndUpdate(userId, { isBanned: true }, { new: true })
+      .select('-password -refreshToken')
+      .lean();
   }
 
   async unbanUser(userId: string) {
-    return this.userModel.findByIdAndUpdate(userId, { isBanned: false }, { new: true });
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    return this.userModel.findByIdAndUpdate(userId, { isBanned: false }, { new: true })
+      .select('-password -refreshToken')
+      .lean();
   }
 }

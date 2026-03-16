@@ -28,8 +28,8 @@ export class AdminService {
     return this.usersService.findAll(skip, limit);
   }
 
-  async banUser(userId: string) {
-    return this.usersService.banUser(userId);
+  async banUser(userId: string, currentUserId?: string) {
+    return this.usersService.banUser(userId, currentUserId);
   }
 
   async unbanUser(userId: string) {
