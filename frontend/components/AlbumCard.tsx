@@ -18,6 +18,7 @@ type Song = {
 
 type AlbumCardProps = {
   song: Song;
+  queue?: Song[];
 };
 
 function albumHref(song: Song) {
@@ -29,7 +30,7 @@ function albumHref(song: Song) {
   return `/album?songId=${song._id}`;
 }
 
-export function AlbumCard({ song }: AlbumCardProps) {
+export function AlbumCard({ song, queue }: AlbumCardProps) {
   const { play, currentSong, isPlaying } = usePlayer();
   const addToPlaylist = useAddToPlaylist();
   const { user } = useAuth();
@@ -72,7 +73,7 @@ export function AlbumCard({ song }: AlbumCardProps) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              play(song);
+              play(song, queue);
             }}
             className="play-btn-glow w-14 h-14 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] flex items-center justify-center hover:scale-110 transition-all duration-200 cursor-pointer"
           >

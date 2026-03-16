@@ -2,11 +2,15 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Song, SongDocument } from './schemas/song.schema';
+import { User, UserDocument } from '../users/schemas/user.schema';
 import { UserRole } from '../users/schemas/user.schema';
 
 @Injectable()
 export class SongsService {
-  constructor(@InjectModel(Song.name) private songModel: Model<SongDocument>) {}
+  constructor(
+    @InjectModel(Song.name) private songModel: Model<SongDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+  ) {}
 
   async create(data: Partial<Song>) {
     const song = new this.songModel(data);
@@ -88,14 +92,16 @@ export class SongsService {
   }
 
   async getPlatformStats() {
-    const [totalPlays, totalSongs] = await Promise.all([
+    const [totalPlays, totalSongs, totalLikesResult] = await Promise.all([
       this.songModel.aggregate([{ $match: { isApproved: true } }, { $group: { _id: null, total: { $sum: '$playCount' } } }]),
       this.songModel.countDocuments({ isApproved: true }),
+      this.userModel.aggregate([{ $project: { count: { $size: { $ifNull: ['$favorites', []] } } } }, { $group: { _id: null, total: { $sum: '$count' } } }]),
     ]);
     return {
       totalStreams: totalPlays[0]?.total ?? 0,
       totalSongs: totalSongs ?? 0,
       totalDownloads: 0,
+      totalLikes: totalLikesResult[0]?.total ?? 0,
     };
   }
 

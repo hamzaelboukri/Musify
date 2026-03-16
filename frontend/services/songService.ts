@@ -5,7 +5,7 @@ export const songService = {
     api.get('/songs', { params }),
   getTrending: (limit = 10) => api.get('/songs/trending', { params: { limit } }),
   getNewReleases: (limit = 10) => api.get('/songs/new-releases', { params: { limit } }),
-  getPlatformStats: () => api.get<{ totalStreams: number; totalSongs: number; totalDownloads: number }>('/songs/stats'),
+  getPlatformStats: () => api.get<{ totalStreams: number; totalSongs: number; totalDownloads: number; totalLikes: number }>('/songs/stats'),
   getById: (id: string) => api.get(`/songs/${id}`),
   getBySinger: (singerId: string) => api.get(`/songs/singer/${singerId}`),
 };
