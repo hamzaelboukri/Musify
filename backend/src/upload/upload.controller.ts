@@ -7,7 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage, memoryStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -18,13 +18,7 @@ import { S3Service } from './s3.service';
 const AUDIO_DIR = join(process.cwd(), 'uploads', 'audio');
 const IMAGE_DIR = join(process.cwd(), 'uploads', 'images');
 
-const audioStorage = diskStorage({
-  destination: (_req, _file, cb) => cb(null, AUDIO_DIR),
-  filename: (_req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, unique + extname(file.originalname) || '.mp3');
-  },
-});
+const audioMemoryStorage = memoryStorage();
 
 const audioFilter = (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
   const allowed = /\.(mp3|m4a|wav|ogg)$/i.test(file.originalname);
@@ -48,15 +42,31 @@ export class UploadController {
   @Roles('SINGER', 'ADMIN')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: audioStorage,
+      storage: audioMemoryStorage,
       fileFilter: audioFilter,
       limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
     }),
   )
-  uploadAudio(@UploadedFile() file: Express.Multer.File) {
+  async uploadAudio(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No audio file provided');
+
     const baseUrl = (process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`).replace(/\/api\/?$/, '');
-    return { url: `${baseUrl}/uploads/audio/${file.filename}` };
+    const ext = extname(file.originalname) || '.mp3';
+    const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+
+    if (this.s3Service.isEnabled()) {
+      const url = await this.s3Service.uploadAudio(
+        file.buffer,
+        filename,
+        file.mimetype || 'audio/mpeg',
+      );
+      return { url };
+    }
+
+    // Fallback: local filesystem (dev / no S3)
+    if (!existsSync(AUDIO_DIR)) mkdirSync(AUDIO_DIR, { recursive: true });
+    writeFileSync(join(AUDIO_DIR, filename), file.buffer);
+    return { url: `${baseUrl}/uploads/audio/${filename}` };
   }
 
   @Post('image')

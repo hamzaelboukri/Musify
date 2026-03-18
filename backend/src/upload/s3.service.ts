@@ -53,12 +53,40 @@ export class S3Service {
         Key: key,
         Body: buffer,
         ContentType: contentType,
-        ACL: 'public-read', // So images can be displayed without auth
+        // No ACL - use bucket policy for public read (required when ACLs are disabled)
       }),
     );
 
     // Public URL: https://bucket.s3.region.amazonaws.com/key
     // Or with custom domain / CloudFront
+    const baseUrl =
+      process.env.AWS_S3_PUBLIC_URL ||
+      `https://${this.bucket}.s3.${this.region}.amazonaws.com`;
+
+    return `${baseUrl.replace(/\/$/, '')}/${key}`;
+  }
+
+  async uploadAudio(
+    buffer: Buffer,
+    filename: string,
+    contentType: string,
+  ): Promise<string> {
+    if (!this.client || !this.bucket) {
+      throw new Error('S3 is not configured');
+    }
+
+    const key = `audio/${filename}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+        // No ACL - use bucket policy for public read (required when ACLs are disabled)
+      }),
+    );
+
     const baseUrl =
       process.env.AWS_S3_PUBLIC_URL ||
       `https://${this.bucket}.s3.${this.region}.amazonaws.com`;
