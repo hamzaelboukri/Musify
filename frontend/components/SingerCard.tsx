@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getCoverImageUrl } from '@/utils/coverImage';
 
 type Singer = {
   _id: string;
@@ -19,9 +20,10 @@ export function SingerCard({ singer }: SingerCardProps) {
       <div className="p-4 rounded-xl bg-musify-card hover:bg-white/5 transition cursor-pointer text-center">
         <div className="w-24 h-24 mx-auto rounded-full overflow-hidden mb-3 bg-white/10">
           <img
-            src={singer.image || '/placeholder.svg'}
+            src={getCoverImageUrl(singer.image, singer._id || singer.stageName)}
             alt={singer.stageName}
             className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, singer._id || singer.stageName); }}
           />
         </div>
         <h3 className="font-semibold text-white">{singer.stageName}</h3>

@@ -1,8 +1,20 @@
 import { api } from './api';
 
 export const singerService = {
+  uploadAudio: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string }>('/upload/audio', formData);
+  },
+  uploadImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string }>('/upload/image', formData);
+  },
   apply: (data: { stageName: string; bio?: string }) => api.post('/singers/apply', data),
   getMyProfile: () => api.get('/singers/me'),
+  updateProfile: (data: { stageName?: string; bio?: string; image?: string }) =>
+    api.patch('/singers/me', data),
   getAll: () => api.get('/singers'),
   getById: (id: string) => api.get(`/singers/${id}`),
   uploadSong: (data: {
@@ -15,8 +27,10 @@ export const singerService = {
     audioUrl: string;
     duration: number;
   }) => api.post('/singers/songs', data),
-  getMySongs: () => api.get('/singers/songs/me'),
-  updateSong: (songId: string, data: Partial<{ title: string; artist: string; album: string; genre: string }>) =>
+  getMySongs: (skip = 0, limit = 20) =>
+    api.get('/singers/songs/me', { params: { skip, limit } }),
+  getMySongsCount: () => api.get<number>('/singers/songs/me/count'),
+  updateSong: (songId: string, data: Partial<{ title: string; artist: string; album: string; genre: string; coverImage: string }>) =>
     api.patch(`/singers/songs/${songId}`, data),
   deleteSong: (songId: string) => api.delete(`/singers/songs/${songId}`),
   getStats: () => api.get('/singers/stats/me'),

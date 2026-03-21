@@ -6,6 +6,10 @@ dist/
 .next/
 out/
 
+# Uploads
+backend/uploads/
+uploads/
+
 # Environment
 .env
 .env.local

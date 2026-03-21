@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { SingersService } from './singers.service';
@@ -36,16 +37,20 @@ export class SingersController {
     return this.singersService.getProfileByUserId(userId);
   }
 
+  @Patch('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SINGER', 'ADMIN')
+  updateProfile(
+    @CurrentUser('_id') userId: string,
+    @Body() body: { stageName?: string; bio?: string; image?: string },
+  ) {
+    return this.singersService.updateProfile(userId, body);
+  }
+
   @Public()
   @Get()
   getAllApproved() {
     return this.singersService.getAllApproved();
-  }
-
-  @Public()
-  @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.singersService.getProfileById(id);
   }
 
   @Post('songs')
@@ -55,11 +60,26 @@ export class SingersController {
     return this.singersService.uploadSong(userId, dto);
   }
 
+  @Get('songs/me/count')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SINGER')
+  getMySongsCount(@CurrentUser('_id') userId: string) {
+    return this.singersService.getMySongsCount(userId);
+  }
+
   @Get('songs/me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SINGER')
-  getMySongs(@CurrentUser('_id') userId: string) {
-    return this.singersService.getMySongs(userId);
+  getMySongs(
+    @CurrentUser('_id') userId: string,
+    @Query('skip') skip?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.singersService.getMySongs(
+      userId,
+      parseInt(skip || '0'),
+      parseInt(limit || '20'),
+    );
   }
 
   @Patch('songs/:songId')
@@ -78,6 +98,12 @@ export class SingersController {
   @Roles('SINGER')
   deleteSong(@Param('songId') songId: string, @CurrentUser('_id') userId: string) {
     return this.singersService.deleteSong(songId, userId);
+  }
+
+  @Public()
+  @Get(':id')
+  getById(@Param('id') id: string) {
+    return this.singersService.getProfileById(id);
   }
 
   @Get('stats/me')

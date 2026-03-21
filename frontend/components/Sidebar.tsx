@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogoutIcon } from '@/components/icons';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -19,72 +20,86 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-20 z-30 bg-musify-sidebar flex flex-col items-center py-6 border-r border-white/5">
-      <Link href="/" className="mb-8">
+    <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 bg-[#0a0a0a] flex flex-col py-6 border-r border-white/5">
+      <Link href="/" className="px-6 mb-6 flex items-center gap-3">
         <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
+        <span className="text-lg font-bold text-white">Musify</span>
       </Link>
 
-      <nav className="flex flex-col items-center gap-2 flex-1">
+      <nav className="flex flex-col gap-1 px-3 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href === '/' && pathname === '/') || (item.href === '/search' && pathname.startsWith('/search'));
           return (
             <Link
               key={item.label}
               href={item.href}
-              title={item.label}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
-                isActive ? 'bg-musify-teal/20 text-musify-teal' : 'text-white/60 hover:text-white hover:bg-white/5'
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
+                isActive ? 'bg-[#00d4ff]/20 text-[#00d4ff] border border-[#00d4ff]/40' : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
               }`}
             >
-              <item.icon className="w-6 h-6" />
+              <item.icon className="w-6 h-6 shrink-0" />
+              <span className="font-medium text-[14px]">{item.label}</span>
             </Link>
           );
         })}
 
-        <div className="mt-auto pt-6 border-t border-white/10 flex flex-col items-center gap-2">
+        <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-1">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition">
+            <ThemeToggle />
+            <span className="font-medium text-[14px]">Theme</span>
+          </div>
           <Link
             href="/playlists"
-            title="Create Playlist"
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
           >
-            <PlusIcon className="w-6 h-6" />
+            <PlusIcon className="w-6 h-6 shrink-0" />
+            <span className="font-medium text-[14px]">Create Playlist</span>
           </Link>
           {user?.role === 'SINGER' && (
             <Link
               href="/singer-dashboard"
-              title="Dashboard"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
             >
-              <DashboardIcon className="w-6 h-6" />
+              <DashboardIcon className="w-6 h-6 shrink-0" />
+              <span className="font-medium text-[14px]">Dashboard</span>
             </Link>
           )}
           {user?.role === 'ADMIN' && (
             <Link
               href="/admin-dashboard"
-              title="Admin"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
             >
-              <ShieldIcon className="w-6 h-6" />
+              <ShieldIcon className="w-6 h-6 shrink-0" />
+              <span className="font-medium text-[14px]">Admin</span>
             </Link>
           )}
           <Link
-            href={user?.role === 'SINGER' ? '/singer-dashboard?tab=profile' : '/profile'}
-            title="Profile"
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition ${
-              (user?.role === 'SINGER' ? isSingerProfile : pathname === '/profile')
-                ? 'bg-musify-teal/20 text-musify-teal'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+            href="/about"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
+              pathname === '/about' ? 'bg-white/10 text-white' : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
             }`}
           >
-            <SettingsIcon className="w-6 h-6" />
+            <InfoIcon className="w-6 h-6 shrink-0" />
+            <span className="font-medium text-[14px]">How it works</span>
+          </Link>
+          <Link
+            href={user?.role === 'SINGER' ? '/singer-dashboard?nav=profile' : '/profile'}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
+              (user?.role === 'SINGER' ? isSingerProfile : pathname === '/profile')
+                ? 'bg-white/10 text-white'
+                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <SettingsIcon className="w-6 h-6 shrink-0" />
+            <span className="font-medium text-[14px]">Profile</span>
           </Link>
           {user && (
             <button
               onClick={async () => { await logout(); window.location.href = '/'; }}
-              title="Log out"
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition w-full text-left"
             >
-              <LogoutIcon className="w-6 h-6" />
+              <LogoutIcon className="w-6 h-6 shrink-0" />
+              <span className="font-medium text-[14px]">Log out</span>
             </button>
           )}
         </div>
@@ -145,6 +160,14 @@ function ShieldIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+    </svg>
+  );
+}
+
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
     </svg>
   );
 }

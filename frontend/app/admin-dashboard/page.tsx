@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminService } from '@/services/adminService';
 import { AdminTable } from '@/components/AdminTable';
+import { AdminFilter } from '@/components/AdminFilter';
 
 type Tab = 'overview' | 'users' | 'singers' | 'songs' | 'sessions';
 
@@ -164,6 +165,12 @@ const ArrowUpRightIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const DownloadIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+  </svg>
+);
+
 function KPICard({
   label,
   value,
@@ -213,9 +220,18 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Record<string, number> | null>(null);
   const [users, setUsers] = useState<unknown[]>([]);
   const [pendingSingers, setPendingSingers] = useState<unknown[]>([]);
-  const [pendingSongs, setPendingSongs] = useState<unknown[]>([]);
+  const [allSongs, setAllSongs] = useState<unknown[]>([]);
   const [sessions, setSessions] = useState<unknown[]>([]);
   const [tab, setTab] = useState<Tab>('overview');
+  // Filters
+  const [userSearch, setUserSearch] = useState('');
+  const [userRole, setUserRole] = useState('all');
+  const [userBanned, setUserBanned] = useState('all');
+  const [singerSearch, setSingerSearch] = useState('');
+  const [songSearch, setSongSearch] = useState('');
+  const [sessionSearch, setSessionSearch] = useState('');
+  const [overviewSearch, setOverviewSearch] = useState('');
+  const [banLoadingId, setBanLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) window.location.href = '/login';
@@ -227,7 +243,7 @@ export default function AdminDashboardPage() {
       adminService.getStats().then(({ data }) => setStats(data));
       adminService.getUsers().then(({ data }) => setUsers(data));
       adminService.getPendingSingers().then(({ data }) => setPendingSingers(data));
-      adminService.getPendingSongs().then(({ data }) => setPendingSongs(data));
+      adminService.getAllSongs().then(({ data }) => setAllSongs(data));
       adminService.getSessions().then(({ data }) => setSessions(data));
     }
   }, [user]);
@@ -236,9 +252,108 @@ export default function AdminDashboardPage() {
     adminService.getStats().then(({ data }) => setStats(data));
     adminService.getUsers().then(({ data }) => setUsers(data));
     adminService.getPendingSingers().then(({ data }) => setPendingSingers(data));
-    adminService.getPendingSongs().then(({ data }) => setPendingSongs(data));
+    adminService.getAllSongs().then(({ data }) => setAllSongs(data));
     adminService.getSessions().then(({ data }) => setSessions(data));
   };
+
+  const escapeCsv = (v: unknown): string => {
+    const s = String(v ?? '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+
+  const exportData = () => {
+    const ts = new Date().toISOString().slice(0, 10);
+    let csv = '';
+    let filename = '';
+
+    if (tab === 'overview') {
+      const rows = [
+        ['Metric', 'Value'],
+        ['Total Users', stats?.totalUsers ?? 0],
+        ['Listeners', stats?.listeners ?? 0],
+        ['Artists', stats?.artists ?? 0],
+        ['Admins', stats?.admins ?? 0],
+        ['Pending Singers', stats?.pendingSingers ?? 0],
+        ['Total Songs', stats?.totalSongs ?? 0],
+        ['Pending Songs', stats?.pendingSongs ?? 0],
+        ['Total Plays', stats?.totalPlays ?? 0],
+        ['Banned Users', stats?.bannedUsers ?? 0],
+      ];
+      csv = rows.map((r) => r.map(escapeCsv).join(',')).join('\n');
+      filename = `musify-overview-${ts}.csv`;
+    } else if (tab === 'users') {
+      const cols = ['name', 'email', 'role', 'isBanned'];
+      csv = [cols.join(','), ...filteredUsers.map((u) => cols.map((c) => escapeCsv((u as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-users-${ts}.csv`;
+    } else if (tab === 'singers') {
+      const cols = ['stageName', 'userId.email'];
+      csv = [cols.join(','), ...filteredSingers.map((s) => cols.map((c) => escapeCsv((s as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-singers-${ts}.csv`;
+    } else if (tab === 'songs') {
+      const cols = ['title', 'artist'];
+      csv = [cols.join(','), ...filteredSongs.map((s) => cols.map((c) => escapeCsv((s as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-songs-${ts}.csv`;
+    } else if (tab === 'sessions') {
+      const cols = ['userId.name', 'deviceId', 'lastActivity'];
+      csv = [cols.join(','), ...filteredSessions.map((s) => cols.map((c) => escapeCsv((s as Record<string, unknown>)[c])).join(','))].join('\n');
+      filename = `musify-sessions-${ts}.csv`;
+    }
+
+    if (!csv) return;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Filtered data
+  const filteredUsers = (users as { name: string; email: string; role: string; isBanned: boolean; _id: string }[])
+    .map((u) => ({ ...u, isBanned: u.isBanned ? 'Yes' : 'No' }))
+    .filter((u) => {
+      const q = userSearch.toLowerCase();
+      const matchSearch = !q || (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+      const matchRole = userRole === 'all' || u.role === userRole;
+      const matchBanned = userBanned === 'all' || (userBanned === 'yes' && u.isBanned === 'Yes') || (userBanned === 'no' && u.isBanned === 'No');
+      return matchSearch && matchRole && matchBanned;
+    });
+
+  const pendingSingersMapped = (pendingSingers as { stageName: string; userId?: { email?: string }; _id: string }[]).map(
+    (s) => ({ ...s, 'userId.email': s.userId?.email ?? '-' })
+  );
+  const filteredSingers = pendingSingersMapped.filter((s) => {
+    const q = singerSearch.toLowerCase();
+    return !q || (s.stageName?.toLowerCase().includes(q) || (s.userId?.email ?? '').toLowerCase().includes(q));
+  });
+
+  const filteredSongs = (allSongs as { title: string; artist: string; _id: string }[]).filter((s) => {
+    const q = songSearch.toLowerCase();
+    return !q || (s.title?.toLowerCase().includes(q) || s.artist?.toLowerCase().includes(q));
+  });
+
+  const sessionsMapped = (sessions as { userId?: { name?: string }; deviceId: string; lastActivity: string }[]).map(
+    (s) => ({
+      ...s,
+      'userId.name': s.userId?.name ?? '-',
+      lastActivity: new Date(s.lastActivity).toLocaleString(),
+    })
+  );
+  const filteredSessions = sessionsMapped.filter((s) => {
+    const q = sessionSearch.toLowerCase();
+    return !q || ((s['userId.name'] ?? '').toLowerCase().includes(q) || (s.deviceId ?? '').toLowerCase().includes(q));
+  });
+
+  const filteredRecentSongs = (allSongs as { title: string; artist: string }[]).filter((s) => {
+    const q = overviewSearch.toLowerCase();
+    return !q || (s.title?.toLowerCase().includes(q) || s.artist?.toLowerCase().includes(q));
+  }).slice(0, 4);
+  const filteredRecentSessions = sessionsMapped.filter((s) => {
+    const q = overviewSearch.toLowerCase();
+    return !q || ((s['userId.name'] ?? '').toLowerCase().includes(q) || (s.deviceId ?? '').toLowerCase().includes(q));
+  }).slice(0, 4);
 
   if (loading) {
     return (
@@ -362,7 +477,7 @@ export default function AdminDashboardPage() {
             </button>
             <button className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition relative">
               <BellIcon className="w-5 h-5" />
-              {(pendingSingers as unknown[]).length + (pendingSongs as unknown[]).length > 0 && (
+              {(pendingSingers as unknown[]).length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-musify-teal" />
               )}
             </button>
@@ -396,20 +511,33 @@ export default function AdminDashboardPage() {
               <AddIcon className="w-4 h-4" />
               Refresh Data
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-musify-card border border-musify-teal/50 text-musify-teal hover:bg-musify-teal/10 font-medium transition-all duration-200">
+            <button
+              onClick={exportData}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-musify-card border border-musify-teal/50 text-musify-teal hover:bg-musify-teal/10 font-medium transition-all duration-200"
+            >
+              <DownloadIcon className="w-4 h-4" />
               Export Data
             </button>
           </div>
         </div>
 
         {tab === 'overview' && stats && (
+          <>
+          <div className="mb-6 rounded-2xl bg-musify-card border border-white/10 overflow-hidden">
+            <AdminFilter
+              searchPlaceholder="Search songs, artists, sessions..."
+              searchValue={overviewSearch}
+              onSearchChange={setOverviewSearch}
+              onClear={() => setOverviewSearch('')}
+            />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Row 1: KPI Cards */}
             <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
               <KPICard label="Total Users" value={stats.totalUsers ?? 0} icon={<TotalIcon className="w-7 h-7" />} primary />
               <KPICard label="Listeners" value={stats.listeners ?? 0} icon={<HeadphonesIcon className="w-6 h-6" />} sub="Active listeners" />
               <KPICard label="Artists" value={stats.artists ?? 0} icon={<MicIcon className="w-6 h-6" />} sub="Approved singers" />
-              <KPICard label="Pending" value={(stats.pendingSingers ?? 0) + (stats.pendingSongs ?? 0)} icon={<ClockIcon className="w-6 h-6" />} sub="Awaiting approval" />
+              <KPICard label="Pending" value={stats.pendingSingers ?? 0} icon={<ClockIcon className="w-6 h-6" />} sub="Singers awaiting approval" />
             </div>
 
             {/* Row 2: Analytics + Reminders */}
@@ -438,8 +566,8 @@ export default function AdminDashboardPage() {
             <div className="rounded-3xl bg-musify-card border border-white/10 p-6">
               <h3 className="text-white font-bold mb-4">Pending Approvals</h3>
               <p className="text-white/70 text-sm mb-4">
-                {(pendingSingers as unknown[]).length + (pendingSongs as unknown[]).length > 0
-                  ? `${(pendingSingers as unknown[]).length} singers and ${(pendingSongs as unknown[]).length} songs need review`
+                {(pendingSingers as unknown[]).length > 0
+                  ? `${(pendingSingers as unknown[]).length} singers need approval`
                   : 'No pending approvals'}
               </p>
               <button onClick={() => setTab('singers')} className="w-full py-3 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium flex items-center justify-center gap-2">
@@ -448,15 +576,15 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Row 3: Pending Songs + Active Sessions */}
+            {/* Row 3: Recent Songs + Active Sessions */}
             <div className="rounded-3xl bg-musify-card border border-white/10 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold">Pending Songs</h3>
-                <button onClick={() => setTab('songs')} className="text-musify-teal text-sm font-medium hover:underline">+ New</button>
+                <h3 className="text-white font-bold">Recent Songs</h3>
+                <button onClick={() => setTab('songs')} className="text-musify-teal text-sm font-medium hover:underline">View all</button>
               </div>
               <div className="space-y-3">
-                {(pendingSongs as { title: string; artist: string }[]).length > 0 ? (
-                  (pendingSongs as { title: string; artist: string }[]).slice(0, 4).map((s, i) => (
+                {filteredRecentSongs.length > 0 ? (
+                  filteredRecentSongs.map((s, i) => (
                     <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
                       <div className="w-8 h-8 rounded-lg bg-musify-teal/20 flex items-center justify-center">
                         <SongsIcon className="w-4 h-4 text-musify-teal" />
@@ -468,7 +596,7 @@ export default function AdminDashboardPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-white/50 text-sm">No pending songs</p>
+                  <p className="text-white/50 text-sm">No songs yet</p>
                 )}
               </div>
             </div>
@@ -478,8 +606,8 @@ export default function AdminDashboardPage() {
                 <button onClick={() => setTab('sessions')} className="text-musify-teal text-sm font-medium hover:underline">View all</button>
               </div>
               <div className="space-y-3">
-                {(sessions as { userId?: { name?: string } }[]).length > 0 ? (
-                  (sessions as { userId?: { name?: string } }[]).slice(0, 4).map((s, i) => (
+                {filteredRecentSessions.length > 0 ? (
+                  filteredRecentSessions.map((s, i) => (
                     <div key={i} className="flex items-center gap-3 py-2">
                       <div className="w-10 h-10 rounded-full bg-musify-purple/20 flex items-center justify-center text-musify-purple font-bold text-sm">
                         {s.userId?.name?.charAt(0) ?? '?'}
@@ -549,6 +677,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
+          </>
         )}
 
         {tab === 'users' && (
@@ -569,6 +698,16 @@ export default function AdminDashboardPage() {
               </div>
               <h2 className="text-lg font-bold text-white">All Users</h2>
             </div>
+            <AdminFilter
+              searchPlaceholder="Search by name or email..."
+              searchValue={userSearch}
+              onSearchChange={setUserSearch}
+              roleFilter={{ value: userRole, onChange: setUserRole }}
+              bannedFilter={{ value: userBanned, onChange: setUserBanned }}
+              resultCount={filteredUsers.length}
+              totalCount={(users as unknown[]).length}
+              onClear={() => { setUserSearch(''); setUserRole('all'); setUserBanned('all'); }}
+            />
             <AdminTable
               columns={[
                 { key: 'name', label: 'Name' },
@@ -605,20 +744,42 @@ export default function AdminDashboardPage() {
                   ),
                 },
               ]}
-              data={(users as { name: string; email: string; role: string; isBanned: boolean; _id: string }[]).map(
-                (u) => ({ ...u, isBanned: u.isBanned ? 'Yes' : 'No' })
-              )}
+              data={filteredUsers}
               actions={(row) => {
-                const r = row as { _id: string; isBanned: boolean };
+                const r = row as { _id: string; isBanned: string; role: string };
+                const isBanned = r.isBanned === 'Yes';
+                const isSelf = r._id === user?.id;
+                const isLoading = banLoadingId === r._id;
+                const handleBanUnban = async () => {
+                  if (isSelf && !isBanned) {
+                    alert('You cannot ban yourself.');
+                    return;
+                  }
+                  if (!isBanned && !confirm(`Ban ${(row as { name?: string }).name ?? 'this user'}? They will no longer be able to sign in.`)) return;
+                  setBanLoadingId(r._id);
+                  try {
+                    await (isBanned ? adminService.unbanUser(r._id) : adminService.banUser(r._id));
+                    refresh();
+                  } catch (err: unknown) {
+                    const msg = err && typeof err === 'object' && 'response' in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+                    alert(msg || 'Failed to update user. Please try again.');
+                  } finally {
+                    setBanLoadingId(null);
+                  }
+                };
                 return (
                   <button
-                    onClick={async () => {
-                      await (r.isBanned ? adminService.unbanUser(r._id) : adminService.banUser(r._id));
-                      refresh();
-                    }}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                    onClick={handleBanUnban}
+                    disabled={isLoading}
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                      isLoading
+                        ? 'bg-white/10 text-white/50 cursor-not-allowed'
+                        : isBanned
+                          ? 'bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30'
+                          : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                    }`}
                   >
-                    {r.isBanned ? 'Unban' : 'Ban'}
+                    {isLoading ? '...' : isBanned ? 'Unban' : 'Ban'}
                   </button>
                 );
               }}
@@ -643,14 +804,20 @@ export default function AdminDashboardPage() {
               </div>
               <h2 className="text-lg font-bold text-white">Pending Singers</h2>
             </div>
+            <AdminFilter
+              searchPlaceholder="Search by stage name or email..."
+              searchValue={singerSearch}
+              onSearchChange={setSingerSearch}
+              resultCount={filteredSingers.length}
+              totalCount={(pendingSingers as unknown[]).length}
+              onClear={() => setSingerSearch('')}
+            />
             <AdminTable
               columns={[
                 { key: 'stageName', label: 'Stage Name' },
                 { key: 'userId.email', label: 'Email' },
               ]}
-              data={(pendingSingers as { stageName: string; userId?: { email?: string }; _id: string }[]).map(
-                (s) => ({ ...s, 'userId.email': s.userId?.email ?? '-' })
-              )}
+              data={filteredSingers}
               actions={(row) => (
                 <div className="flex gap-2 justify-end">
                   <button
@@ -682,9 +849,7 @@ export default function AdminDashboardPage() {
           <>
             {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <KPICard label="Total Songs" value={(stats.totalSongs ?? 0) + (stats.pendingSongs ?? 0)} icon={<SongsIcon className="w-7 h-7" />} primary />
-              <KPICard label="Approved" value={stats.totalSongs ?? 0} icon={<CheckIcon className="w-6 h-6" />} />
-              <KPICard label="Pending" value={stats.pendingSongs ?? 0} icon={<ClockIcon className="w-6 h-6" />} />
+              <KPICard label="Total Songs" value={stats.totalSongs ?? 0} icon={<SongsIcon className="w-7 h-7" />} primary />
               <KPICard label="Total Plays" value={stats.totalPlays ?? 0} icon={<PlayIcon className="w-6 h-6" />} />
             </div>
             )}
@@ -693,25 +858,24 @@ export default function AdminDashboardPage() {
               <div className="w-9 h-9 rounded-lg bg-musify-teal/20 flex items-center justify-center">
                 <SongsIcon className="w-4 h-4 text-musify-teal" />
               </div>
-              <h2 className="text-lg font-bold text-white">Pending Songs</h2>
+              <h2 className="text-lg font-bold text-white">All Songs</h2>
             </div>
+            <AdminFilter
+              searchPlaceholder="Search by title or artist..."
+              searchValue={songSearch}
+              onSearchChange={setSongSearch}
+              resultCount={filteredSongs.length}
+              totalCount={(allSongs as unknown[]).length}
+              onClear={() => setSongSearch('')}
+            />
             <AdminTable
               columns={[
                 { key: 'title', label: 'Title' },
                 { key: 'artist', label: 'Artist' },
               ]}
-              data={pendingSongs as { title: string; artist: string; _id: string }[]}
+              data={filteredSongs}
               actions={(row) => (
                 <div className="flex gap-2 justify-end">
-                  <button
-                    onClick={async () => {
-                      await adminService.approveSong((row as { _id: string })._id);
-                      refresh();
-                    }}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 bg-musify-teal/20 text-musify-teal hover:bg-musify-teal/30"
-                  >
-                    Approve
-                  </button>
                   <button
                     onClick={async () => {
                       if (confirm('Delete this song?')) {
@@ -742,19 +906,21 @@ export default function AdminDashboardPage() {
               </div>
               <h2 className="text-lg font-bold text-white">Active Sessions</h2>
             </div>
+            <AdminFilter
+              searchPlaceholder="Search by user or device..."
+              searchValue={sessionSearch}
+              onSearchChange={setSessionSearch}
+              resultCount={filteredSessions.length}
+              totalCount={(sessions as unknown[]).length}
+              onClear={() => setSessionSearch('')}
+            />
             <AdminTable
               columns={[
                 { key: 'userId.name', label: 'User' },
                 { key: 'deviceId', label: 'Device' },
                 { key: 'lastActivity', label: 'Last Activity' },
               ]}
-              data={(sessions as { userId?: { name?: string }; deviceId: string; lastActivity: string }[]).map(
-                (s) => ({
-                  ...s,
-                  'userId.name': s.userId?.name ?? '-',
-                  lastActivity: new Date(s.lastActivity).toLocaleString(),
-                })
-              )}
+              data={filteredSessions}
             />
           </div>
           </>

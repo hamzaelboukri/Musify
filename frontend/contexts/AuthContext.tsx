@@ -31,10 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       userService
         .getProfile()
-        .then(({ data }) => setUser({ id: data.id || data._id, name: data.name, email: data.email, role: data.role }))
+        .then(({ data }) => {
+          const d = data as { id?: string; _id?: string; name: string; email: string; role: User['role'] };
+          setUser({ id: d.id ?? String(d._id ?? ''), name: d.name, email: d.email, role: d.role });
+        })
         .catch(() => {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
+          setUser(null);
         })
         .finally(() => setLoading(false));
     } else {

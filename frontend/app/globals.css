@@ -2,18 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="dark"] {
   --background: #121212;
+  --background-elevated: #181818;
   --foreground: #ffffff;
-  --musify-accent: #06b6d4;
+  --foreground-muted: #b3b3b3;
+  --musify-accent: #1DB954;
   --musify-purple: #8b5cf6;
   --musify-pink: #ec4899;
+}
+
+[data-theme="light"] {
+  --background: #f4f4f5;
+  --background-elevated: #ffffff;
+  --foreground: #18181b;
+  --foreground-muted: #71717a;
+  --musify-accent: #0891b2;
+  --musify-purple: #7c3aed;
+  --musify-pink: #db2777;
+}
+
+html {
+  font-size: 16px;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -22,6 +41,42 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Premium home card - glassmorphism */
+.home-card {
+  background: linear-gradient(145deg, rgba(30, 30, 35, 0.95) 0%, rgba(24, 24, 28, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.home-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Premium album card */
+.album-card-premium {
+  background: linear-gradient(180deg, rgba(40, 40, 45, 0.9) 0%, rgba(30, 30, 35, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.album-card-premium:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 212, 255, 0.25);
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* Play button glow - neon blue */
+.play-btn-glow {
+  box-shadow: 0 8px 24px -4px rgba(0, 212, 255, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.play-btn-glow:hover {
+  box-shadow: 0 12px 32px -4px rgba(0, 191, 255, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
 @keyframes slideUp {
@@ -33,4 +88,172 @@ body {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* Premium Dark dashboard - glassmorphism & neon */
+.premium-card {
+  background: rgba(26, 26, 30, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 24px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.premium-card:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5);
+}
+.premium-card-elevated {
+  border-radius: 28px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* Neon glow for dashboard charts */
+.neon-teal {
+  filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8)) drop-shadow(0 0 12px rgba(6, 182, 212, 0.4));
+}
+.neon-pink {
+  filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.8)) drop-shadow(0 0 12px rgba(236, 72, 153, 0.4));
+}
+/* Stovest-style electric blue neon */
+.neon-blue {
+  filter: drop-shadow(0 0 6px rgba(0, 123, 255, 0.9)) drop-shadow(0 0 14px rgba(0, 163, 255, 0.5));
+}
+.neon-purple {
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 12px rgba(139, 92, 246, 0.4));
+}
+.neon-cyan {
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.9)) drop-shadow(0 0 16px rgba(6, 182, 212, 0.5));
+}
+
+/* Singer profile - neon shine, refined colors */
+.profile-neon-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  box-shadow: 0 0 40px -12px rgba(34, 211, 238, 0.2), 0 0 60px -20px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+}
+.profile-neon-card:hover {
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: 0 0 50px -10px rgba(34, 211, 238, 0.25), 0 0 80px -15px rgba(139, 92, 246, 0.2);
+}
+.profile-avatar-glow {
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.35), 0 0 50px rgba(139, 92, 246, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.04);
+}
+.profile-avatar-glow:hover {
+  box-shadow: 0 0 35px rgba(34, 211, 238, 0.45), 0 0 60px rgba(139, 92, 246, 0.25);
+}
+@keyframes neon-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* Premium upload form & cards */
+.upload-card {
+  background: linear-gradient(145deg, rgba(31, 31, 31, 0.95) 0%, rgba(26, 26, 26, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(6, 182, 212, 0.03);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+}
+.upload-card:hover {
+  box-shadow: 0 8px 40px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.15);
+}
+.input-premium {
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+.input-premium:focus {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+.file-zone {
+  border: 2px dashed rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.03);
+  transition: all 0.2s ease;
+}
+.file-zone:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  background: rgba(6, 182, 212, 0.06);
+}
+.btn-upload-premium {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 4px 14px -2px rgba(6, 182, 212, 0.4);
+  transition: all 0.2s ease;
+}
+.btn-upload-premium:hover:not(:disabled) {
+  box-shadow: 0 6px 20px -2px rgba(6, 182, 212, 0.5);
+  transform: translateY(-1px);
+}
+.song-card-premium {
+  background: linear-gradient(135deg, rgba(31, 31, 31, 0.6) 0%, rgba(26, 26, 26, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+.song-card-premium:hover {
+  background: rgba(31, 31, 31, 0.9);
+  border-color: rgba(6, 182, 212, 0.2);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Create Song Modal - premium design */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: modalFadeIn 0.25s ease-out;
+}
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal-content {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  background: linear-gradient(160deg, rgba(28, 28, 32, 0.98) 0%, rgba(18, 18, 22, 0.99) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(6, 182, 212, 0.06), 0 0 60px -20px rgba(6, 182, 212, 0.15);
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }

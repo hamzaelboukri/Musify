@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { SongsService } from './songs.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -34,14 +35,31 @@ export class SongsController {
 
   @Public()
   @Get('new-releases')
-  getNewReleases(@Query('limit') limit?: string) {
-    return this.songsService.getNewReleases(parseInt(limit || '10'));
+  getNewReleases(@Query('limit') limit?: string, @Query('genre') genre?: string) {
+    return this.songsService.getNewReleases(parseInt(limit || '10'), genre);
   }
 
   @Public()
   @Get('stats')
   getPlatformStats() {
     return this.songsService.getPlatformStats();
+  }
+
+  @Public()
+  @Get('count')
+  getCount(
+    @Query('genre') genre?: string,
+    @Query('artist') artist?: string,
+    @Query('album') album?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.songsService.count({ genre, artist, album, search });
+  }
+
+  @Public()
+  @Get(':id/download')
+  async download(@Param('id') id: string, @Res() res: Response) {
+    return this.songsService.download(id, res);
   }
 
   @Public()
