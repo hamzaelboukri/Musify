@@ -1,6 +1,7 @@
 'use client';
 
 import { usePlayer } from '@/contexts/PlayerContext';
+import { songService } from '@/services/songService';
 
 export function MusicPlayer() {
   const { currentSong, isPlaying, progress, volume, setVolume, toggle, stop, next, prev, seek } = usePlayer();
@@ -70,6 +71,17 @@ export function MusicPlayer() {
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href={songService.getDownloadUrl(currentSong._id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 text-[#b3b3b3] hover:text-white transition"
+            title="Download"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </a>
           <button onClick={stop} className="p-2 text-[#b3b3b3] hover:text-white transition" title="Stop">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h12v12H6z" />

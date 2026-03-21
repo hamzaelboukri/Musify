@@ -31,19 +31,44 @@ export default function HomePage() {
   const { searchQuery } = useSearch();
   const { play, currentSong, isPlaying } = usePlayer();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [songsSkip, setSongsSkip] = useState(0);
+  const [songsTotal, setSongsTotal] = useState(0);
+  const [songsLoading, setSongsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [trending, setTrending] = useState<Song[]>([]);
   const [newReleases, setNewReleases] = useState<Song[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [playHistory, setPlayHistory] = useState<{ songId?: { _id: string; title?: string; artist?: string; coverImage?: string; audioUrl?: string; duration?: number }; playedAt?: string }[]>([]);
   const [selectedGenre, setSelectedGenre] = useState('All');
 
+  const SONGS_PAGE_SIZE = 20;
+
   useEffect(() => {
-    songService.getAll({ genre: selectedGenre === 'All' ? undefined : selectedGenre, limit: 50 }).then(({ data }) => setSongs(data as Song[]));
-    songService.getTrending(10).then(({ data }) => setTrending(data as Song[]));
-    songService.getNewReleases(8).then(({ data }) => setNewReleases(data as Song[]));
+    const genre = selectedGenre === 'All' ? undefined : selectedGenre;
+    setSongsSkip(0);
+    setSongsLoading(true);
+    Promise.all([
+      songService.getAll({ genre, skip: 0, limit: SONGS_PAGE_SIZE }),
+      songService.getCount({ genre }),
+      songService.getNewReleases(8, genre),
+    ])
+      .then(([songsRes, countRes, releasesRes]) => {
+        setSongs((songsRes.data as Song[]) || []);
+        setSongsTotal(typeof countRes.data === 'number' ? countRes.data : 0);
+        setNewReleases((releasesRes.data as Song[]) || []);
+      })
+      .finally(() => setSongsLoading(false));
   }, [selectedGenre]);
+
+  const loadMoreSongs = () => {
+    const genre = selectedGenre === 'All' ? undefined : selectedGenre;
+    const nextSkip = songsSkip + SONGS_PAGE_SIZE;
+    setSongsLoading(true);
+    songService.getAll({ genre, skip: nextSkip, limit: SONGS_PAGE_SIZE }).then(({ data }) => {
+      setSongs((prev) => [...prev, ...((data as Song[]) || [])]);
+      setSongsSkip(nextSkip);
+    }).finally(() => setSongsLoading(false));
+  };
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -83,10 +108,8 @@ export default function HomePage() {
     }
   };
 
-  const topHits = trending.slice(0, 6);
   const artists = Array.from(new Map(songs.map((s) => [s.artist, { name: s.artist, cover: s.coverImage, singerImage: (s as { singerId?: { _id?: string; image?: string } }).singerId?.image, singerId: (s as { singerId?: { _id?: string } }).singerId?._id }])).values()).slice(0, 6);
 
-  const formatPlays = (n: number) => (n >= 1000000 ? `${(n / 1000000).toFixed(1)}m` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : '0');
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}.${(sec % 60).toString().padStart(2, '0')} min`;
 
   const showSearchResults = searchQuery.trim().length > 0;
@@ -151,10 +174,10 @@ export default function HomePage() {
               <button
                 key={g}
                 onClick={() => setSelectedGenre(g)}
-                className={`px-4 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all shrink-0 ${
-                selectedGenre === g
-                  ? 'bg-[#00d4ff] text-black shadow-lg shadow-[#00d4ff]/40'
-                  : 'bg-white/10 text-white hover:bg-white/15 border border-white/5'
+                className={`px-4 py-2.5 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${
+                  selectedGenre === g
+                    ? 'bg-[#00d4ff] text-black shadow-lg shadow-[#00d4ff]/50'
+                    : 'bg-white/10 text-white/90 hover:bg-white/15 hover:text-white border border-white/5'
                 }`}
               >
                 {g}
@@ -163,9 +186,9 @@ export default function HomePage() {
           </div>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6 tracking-tight">{greeting()}</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: New Releases + Promo + Artists */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-10 max-w-6xl">
+          {/* New Releases + Recently Played + Artists */}
+          <div className="space-y-10">
             {/* New Releases */}
             <section>
               <div className="flex items-center justify-between mb-5">
@@ -273,61 +296,48 @@ export default function HomePage() {
                 {artists.length === 0 && <p className="text-white/50 text-sm">No artists yet</p>}
               </div>
             </section>
-          </div>
 
-          {/* Right: Top hits + Statistics */}
-          <div className="space-y-6">
-            {/* Top hits */}
-            <div className="home-card rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-bold text-white tracking-tight">Top hits</h2>
-                <div className="flex items-center gap-2">
-                  {topHits.length > 0 && (
-                    <button
-                      onClick={() => play(topHits[0], topHits)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] text-black font-semibold text-[13px] hover:opacity-90 transition"
-                    >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                      Play all
-                    </button>
-                  )}
-                  <Link href="/" className="text-[#b3b3b3] hover:text-[#00d4ff] text-[13px] font-medium transition">See more</Link>
+            {/* Browse by genre - grid of songs */}
+            <section>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  {selectedGenre === 'All' ? 'Browse all' : selectedGenre}
+                </h2>
+                <Link href="/search" className="text-[#b3b3b3] hover:text-[#00d4ff] text-[13px] font-medium transition">See all</Link>
+              </div>
+              {songsLoading && songs.length === 0 ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-10 h-10 rounded-full border-2 border-[#00d4ff]/40 border-t-[#00d4ff] animate-spin" />
                 </div>
-              </div>
-              <div className="space-y-0.5">
-                {topHits.map((song, i) => {
-                  const isCurrent = currentSong?._id === song._id;
-                  const albumHref = song.album
-                    ? `/album?album=${encodeURIComponent(song.album)}&artist=${encodeURIComponent(song.artist)}`
-                    : `/album?songId=${song._id}`;
-                  return (
-                    <Link
-                      key={song._id}
-                      href={albumHref}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition-all group"
-                    >
-                      <img src={getCoverImageUrl(song.coverImage, song._id)} alt="" className="w-10 h-10 rounded-lg object-cover shadow-md flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id); }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-semibold truncate text-[14px]">{song.title}</p>
-                        <p className="text-white/55 text-[13px] truncate">{formatPlays(song.playCount || 0)} plays · {formatDuration(song.duration)}</p>
-                      </div>
+              ) : songs.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {songs.map((song) => (
+                      <SongCard
+                        key={song._id}
+                        song={song}
+                        queue={songs}
+                        onFavorite={user ? (id) => toggleFavorite(id, favorites.has(id)) : undefined}
+                        isFavorite={favorites.has(song._id)}
+                      />
+                    ))}
+                  </div>
+                  {songs.length < songsTotal && (
+                    <div className="mt-6 text-center">
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); play(song, topHits); }}
-                        className={`p-2.5 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] text-white transition-all hover:scale-110 hover:opacity-90 ${isCurrent && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        onClick={loadMoreSongs}
+                        disabled={songsLoading}
+                        className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-[14px] disabled:opacity-50 transition"
                       >
-                        <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
+                        {songsLoading ? 'Loading...' : `Load more (${songs.length} of ${songsTotal})`}
                       </button>
-                    </Link>
-                  );
-                })}
-                {topHits.length === 0 && <p className="text-white/50 text-sm py-4">No songs yet</p>}
-              </div>
-            </div>
-
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-white/50 py-8">No songs yet</p>
+              )}
+            </section>
           </div>
         </div>
       </div>

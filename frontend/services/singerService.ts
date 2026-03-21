@@ -27,7 +27,9 @@ export const singerService = {
     audioUrl: string;
     duration: number;
   }) => api.post('/singers/songs', data),
-  getMySongs: () => api.get('/singers/songs/me'),
+  getMySongs: (skip = 0, limit = 20) =>
+    api.get('/singers/songs/me', { params: { skip, limit } }),
+  getMySongsCount: () => api.get<number>('/singers/songs/me/count'),
   updateSong: (songId: string, data: Partial<{ title: string; artist: string; album: string; genre: string; coverImage: string }>) =>
     api.patch(`/singers/songs/${songId}`, data),
   deleteSong: (songId: string) => api.delete(`/singers/songs/${songId}`),

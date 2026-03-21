@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { singerService } from '@/services/singerService';
 import { userService } from '@/services/userService';
 import { BackIcon, DeleteIcon, GridIcon, MusicIcon, ChartIcon, SettingsIcon, AlbumIcon } from '@/components/icons';
+import { Pagination } from '@/components/Pagination';
 import { getCoverImageUrl } from '@/utils/coverImage';
 import { albumService } from '@/services/albumService';
 
@@ -82,8 +83,11 @@ export default function SingerDashboardPage() {
   const [songsLoading, setSongsLoading] = useState(false);
   const [songsError, setSongsError] = useState<string | null>(null);
   const [songsPage, setSongsPage] = useState(1);
-  const SONGS_PER_PAGE = 8;
+  const [songsTotal, setSongsTotal] = useState(0);
+  const SONGS_PER_PAGE = 20;
   const [albums, setAlbums] = useState<{ _id: string; name: string; artist: string; coverImage?: string; songs: unknown[] }[]>([]);
+  const [albumsPage, setAlbumsPage] = useState(1);
+  const ALBUMS_PER_PAGE = 12;
   const [showCreateAlbum, setShowCreateAlbum] = useState(false);
   const [albumForm, setAlbumForm] = useState({ name: '' });
   const [addToAlbumSong, setAddToAlbumSong] = useState<Song | null>(null);
@@ -97,18 +101,22 @@ export default function SingerDashboardPage() {
   const [profileEditForm, setProfileEditForm] = useState({ stageName: '', bio: '', email: '', name: '' });
   const [profileSaving, setProfileSaving] = useState(false);
 
-  const fetchMySongs = useCallback(() => {
+  const fetchMySongs = useCallback((page = 1) => {
     if (user?.role !== 'SINGER' || !profile?.isApproved) return;
     setSongsLoading(true);
     setSongsError(null);
+    const skip = (page - 1) * SONGS_PER_PAGE;
     Promise.all([
-      singerService.getMySongs(),
+      singerService.getMySongs(skip, SONGS_PER_PAGE),
+      singerService.getMySongsCount(),
       singerService.getStats(),
     ])
-      .then(([songsRes, statsRes]) => {
+      .then(([songsRes, countRes, statsRes]) => {
         const data = songsRes.data;
         setSongs(Array.isArray(data) ? data : []);
+        setSongsTotal(typeof countRes.data === 'number' ? countRes.data : 0);
         setStats(statsRes.data as Stats);
+        setSongsPage(page);
       })
       .catch((err) => {
         setSongs([]);
@@ -195,7 +203,8 @@ export default function SingerDashboardPage() {
         .then(({ data }) => {
           setProfile(data);
           if (data?.isApproved) {
-            singerService.getMySongs().then(({ data: s }) => setSongs(Array.isArray(s) ? s : [])).catch(() => setSongs([]));
+            singerService.getMySongs(0, 20).then(({ data: s }) => setSongs(Array.isArray(s) ? s : [])).catch(() => setSongs([]));
+            singerService.getMySongsCount().then(({ data: c }) => setSongsTotal(typeof c === 'number' ? c : 0)).catch(() => setSongsTotal(0));
             singerService.getStats().then(({ data: st }) => setStats(st as Stats)).catch(() => setStats(null));
           }
         })
@@ -209,7 +218,7 @@ export default function SingerDashboardPage() {
   // Refetch songs when navigating to Songs tab (ensures fresh data for management)
   useEffect(() => {
     if (activeNav === 'songs' && profile?.isApproved) {
-      fetchMySongs();
+      fetchMySongs(1);
     }
   }, [activeNav, profile?.isApproved, fetchMySongs]);
 
@@ -218,11 +227,6 @@ export default function SingerDashboardPage() {
       fetchMyAlbums();
     }
   }, [activeNav, profile?.isApproved, fetchMyAlbums]);
-
-  // Reset to page 1 when songs or sort changes
-  useEffect(() => {
-    setSongsPage(1);
-  }, [songs.length, songSort]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,7 +251,7 @@ export default function SingerDashboardPage() {
       if (selectedAlbumForCreate && (newSong as { _id?: string })?._id) {
         await albumService.addSong(selectedAlbumForCreate._id, (newSong as { _id: string })._id);
       }
-      singerService.getMySongs().then(({ data }) => setSongs(data as Song[]));
+      fetchMySongs(1);
       singerService.getStats().then(({ data }) => setStats(data as Stats));
       fetchMyAlbums();
       setShowUpload(false);
@@ -451,31 +455,31 @@ export default function SingerDashboardPage() {
         <nav className="flex-1 py-4 px-3">
           <p className="px-3 py-1.5 text-xs font-medium text-musify-text-muted uppercase tracking-wider">Main Menu</p>
           <div className="space-y-0.5 mt-1">
-            <Link href="/singer-dashboard" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${!['songs','streams','profile'].includes(activeNav) ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+            <Link href="/singer-dashboard" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition ${!['songs','albums','streams','profile'].includes(activeNav) ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <GridIcon className="h-4 w-4" />
               </div>
               Dashboard
             </Link>
-            <Link href="/singer-dashboard?nav=songs" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'songs' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+            <Link href="/singer-dashboard?nav=songs" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition ${activeNav === 'songs' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <MusicIcon className="h-4 w-4" />
               </div>
               Songs
             </Link>
-            <Link href="/singer-dashboard?nav=albums" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'albums' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+            <Link href="/singer-dashboard?nav=albums" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition ${activeNav === 'albums' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <AlbumIcon className="h-4 w-4" />
               </div>
               Albums
             </Link>
-            <Link href="/singer-dashboard?nav=streams" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'streams' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+            <Link href="/singer-dashboard?nav=streams" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition ${activeNav === 'streams' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <ChartIcon className="h-4 w-4" />
               </div>
               Analytics
             </Link>
-            <Link href="/singer-dashboard?nav=profile" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${activeNav === 'profile' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
+            <Link href="/singer-dashboard?nav=profile" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition ${activeNav === 'profile' ? 'bg-musify-teal text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'}`}>
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <SettingsIcon className="h-4 w-4" />
               </div>
@@ -484,7 +488,7 @@ export default function SingerDashboardPage() {
           </div>
           <p className="px-3 py-1.5 text-xs font-medium text-musify-text-muted uppercase tracking-wider mt-6">Support</p>
           <div className="space-y-0.5 mt-1">
-            <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/5 hover:text-white transition">
+            <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] text-white/80 hover:bg-white/5 hover:text-white transition">
               <BackIcon className="h-4 w-4" />
               Back to App
             </Link>
@@ -505,7 +509,7 @@ export default function SingerDashboardPage() {
                   const href = i === 0 ? '/singer-dashboard' : `/singer-dashboard?nav=${nav}`;
                   const isActive = (i === 0 && !['songs','albums','streams','profile'].includes(activeNav)) || activeNav === nav;
                   return (
-                    <Link key={tab} href={href} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${isActive ? 'bg-musify-teal text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                    <Link key={tab} href={href} className={`px-4 py-2 rounded-lg text-[14px] font-medium transition ${isActive ? 'bg-musify-teal text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                       {tab}
                     </Link>
                   );
@@ -526,8 +530,8 @@ export default function SingerDashboardPage() {
               )}
               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-white">{profile?.stageName || user?.name || 'Artist'}</p>
-                  <p className="text-xs text-musify-text-muted">{user?.email || ''}</p>
+                  <p className="text-[14px] font-medium text-white">{profile?.stageName || user?.name || 'Artist'}</p>
+                  <p className="text-[12px] text-musify-text-muted truncate max-w-[140px]">{user?.email || ''}</p>
                 </div>
                 <Link href="/singer-dashboard?nav=profile" className="w-10 h-10 rounded-full overflow-hidden bg-musify-teal/20 flex items-center justify-center text-musify-teal font-bold shrink-0">
                   {profile?.image ? (
@@ -541,42 +545,34 @@ export default function SingerDashboardPage() {
           </div>
         </header>
 
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6 lg:p-8 overflow-auto">
           {/* SONGS PAGE: Upload form + songs list */}
           {activeNav === 'songs' && (
-            <>
+            <div className="max-w-7xl mx-auto space-y-6">
               {/* Artist header + Songs management */}
-              <div className="mb-6">
-                <div className="rounded-2xl bg-musify-card border border-white/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center text-2xl font-bold text-musify-teal shrink-0">
-                      {profile?.image ? (
-                        <img src={getCoverImageUrl(profile.image)} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        profile?.stageName?.[0]?.toUpperCase() || '?'
-                      )}
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">{profile?.stageName || 'Artist'}</h2>
-                      <p className="text-musify-text-muted text-sm">{songs.length} song{songs.length !== 1 ? 's' : ''} · {(stats?.totalPlays ?? 0).toLocaleString()} total plays</p>
-                    </div>
+              <div className="rounded-xl bg-musify-card/80 border border-white/10 p-5 flex items-center gap-4 shadow-lg shadow-black/20">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-musify-teal/30 to-musify-purple/20 flex items-center justify-center text-lg font-bold text-musify-teal shrink-0">
+                    {profile?.image ? (
+                      <img src={getCoverImageUrl(profile.image)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      profile?.stageName?.[0]?.toUpperCase() || '?'
+                    )}
                   </div>
-                  <button onClick={() => setShowUpload(true)} className="px-5 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition flex items-center gap-2 shrink-0">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    Create Song
-                  </button>
+                  <div>
+                    <h2 className="text-base font-bold text-white">{profile?.stageName || 'Artist'}</h2>
+                    <p className="text-musify-text-muted text-[13px]">{songsTotal} song{songsTotal !== 1 ? 's' : ''} · {(stats?.totalPlays ?? 0).toLocaleString()} total plays</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="rounded-3xl upload-card p-6">
+              <div className="rounded-2xl bg-musify-card/80 border border-white/10 p-6 lg:p-8 shadow-lg shadow-black/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                   <div>
-                    <h3 className="text-lg font-bold text-white">Manage Your Songs</h3>
-                    <p className="text-musify-text-muted text-sm mt-0.5">View, edit, sort, and delete your tracks</p>
+                    <h3 className="text-base font-bold text-white">Manage Your Songs</h3>
+                    <p className="text-musify-text-muted text-[13px] mt-0.5">View, edit, sort, and delete your tracks</p>
                   </div>
                   {songs.length > 0 && (
                     <div className="flex items-center gap-3">
-                      <button onClick={fetchMySongs} disabled={songsLoading} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-musify-text-muted hover:text-white transition disabled:opacity-50" title="Refresh songs">
+                      <button onClick={() => fetchMySongs(songsPage)} disabled={songsLoading} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-musify-text-muted hover:text-white transition disabled:opacity-50" title="Refresh songs">
                         <svg className={`w-5 h-5 ${songsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                       </button>
                       <div className="flex items-center gap-2">
@@ -608,7 +604,7 @@ export default function SingerDashboardPage() {
                     <h4 className="text-lg font-semibold text-white mb-2">Your songs will appear here</h4>
                     <p className="text-musify-text-muted text-sm mb-6 max-w-sm mx-auto">This is where you see and manage all your tracks. Load your songs or create a new one.</p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                      <button onClick={fetchMySongs} disabled={songsLoading} className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium transition inline-flex items-center gap-2 disabled:opacity-50">
+                      <button onClick={() => fetchMySongs(1)} disabled={songsLoading} className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium transition inline-flex items-center gap-2 disabled:opacity-50">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         Load my songs
                       </button>
@@ -620,17 +616,16 @@ export default function SingerDashboardPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                       {[...songs]
                         .sort((a, b) => {
                           if (songSort === 'newest') return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime());
                           if (songSort === 'plays') return (b.playCount || 0) - (a.playCount || 0);
                           return (a.title || '').localeCompare(b.title || '');
                         })
-                        .slice((songsPage - 1) * SONGS_PER_PAGE, songsPage * SONGS_PER_PAGE)
                         .map((song) => (
-                          <div key={song._id} className="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-musify-teal/30 hover:bg-white/[0.07] transition-all duration-200">
-                            <div className="relative aspect-square">
+                          <div key={song._id} className="group rounded-xl bg-white/5 border border-white/10 overflow-hidden hover:border-musify-teal/30 hover:bg-white/[0.07] transition-all duration-200">
+                            <div className="relative h-32 w-full">
                               <img src={getCoverImageUrl(song.coverImage, song._id || song.title)} alt={song.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }} />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
@@ -642,42 +637,33 @@ export default function SingerDashboardPage() {
                                   <button onClick={(e) => { e.stopPropagation(); setEditingSong(song); setEditForm({ title: song.title, genre: song.genre || '', album: song.album || '' }); setEditImageFile(null); }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-teal/80 text-white" title="Edit">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                   </button>
-                                  <button onClick={async (e) => { e.stopPropagation(); if (confirm('Delete this song?')) { await singerService.deleteSong(song._id); fetchMySongs(); } }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-pink/80 text-white" title="Delete">
+                                  <button onClick={async (e) => { e.stopPropagation(); if (confirm('Delete this song?')) { await singerService.deleteSong(song._id); fetchMySongs(songsPage); } }} className="p-2 rounded-lg bg-black/50 hover:bg-musify-pink/80 text-white" title="Delete">
                                     <DeleteIcon size="sm" />
                                   </button>
                                 </div>
                               </div>
                             </div>
-                            <div className="p-4">
-                              <p className="font-semibold text-white truncate">{song.title}</p>
-                              <p className="text-musify-text-muted text-sm truncate mt-0.5">{song.artist}</p>
-                              <div className="flex items-center justify-between mt-2 text-xs text-musify-text-muted">
-                                <span>{song.genre || '—'}</span>
-                                <span>{(song.playCount || 0).toLocaleString()} plays</span>
+                            <div className="p-2.5">
+                              <p className="font-semibold text-white truncate text-[14px] leading-tight">{song.title}</p>
+                              <p className="text-musify-text-muted text-[12px] truncate mt-0.5">{song.artist}</p>
+                              <div className="flex items-center justify-between mt-1 text-[11px] text-musify-text-muted gap-1">
+                                <span className="truncate">{song.genre || '—'}</span>
+                                <span className="shrink-0">{(song.playCount || 0).toLocaleString()} plays</span>
                               </div>
-                              {song.duration != null && <p className="text-musify-text-muted text-xs mt-1">{Math.floor(song.duration / 60)}:{String(song.duration % 60).padStart(2, '0')}</p>}
+                              {song.duration != null && <p className="text-musify-text-muted text-[11px] mt-0.5">{Math.floor(song.duration / 60)}:{String(song.duration % 60).padStart(2, '0')}</p>}
                             </div>
                           </div>
                         ))}
                     </div>
-                    {Math.ceil(songs.length / SONGS_PER_PAGE) > 1 && (
-                      <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/10">
-                        <p className="text-musify-text-muted text-sm">
-                          Showing {((songsPage - 1) * SONGS_PER_PAGE) + 1}–{Math.min(songsPage * SONGS_PER_PAGE, songs.length)} of {songs.length} songs
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setSongsPage((p) => Math.max(1, p - 1))} disabled={songsPage <= 1} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            Previous
-                          </button>
-                          <span className="px-4 py-2 rounded-xl bg-musify-teal/20 text-musify-teal text-sm font-medium">
-                            Page {songsPage} of {Math.ceil(songs.length / SONGS_PER_PAGE)}
-                          </span>
-                          <button onClick={() => setSongsPage((p) => Math.min(Math.ceil(songs.length / SONGS_PER_PAGE), p + 1))} disabled={songsPage >= Math.ceil(songs.length / SONGS_PER_PAGE)} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            Next
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <Pagination
+                      currentPage={songsPage}
+                      totalItems={songsTotal}
+                      perPage={SONGS_PER_PAGE}
+                      onPageChange={(p) => fetchMySongs(p)}
+                      itemLabel="songs"
+                      loading={songsLoading}
+                      showItemCount={songsTotal > 0}
+                    />
                   </>
                 )}
               </div>
@@ -737,25 +723,23 @@ export default function SingerDashboardPage() {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* ALBUMS PAGE */}
           {activeNav === 'albums' && (
-            <>
-              <div className="mb-6">
-                <div className="rounded-2xl bg-musify-card border border-white/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">My Albums</h2>
-                    <p className="text-musify-text-muted text-sm mt-0.5">Create albums and add your songs</p>
-                  </div>
-                  <button onClick={() => setShowCreateAlbum(true)} className="px-5 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition flex items-center gap-2 shrink-0">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    Create Album
-                  </button>
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="rounded-xl bg-musify-card/80 border border-white/10 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-black/20">
+                <div>
+                  <h2 className="text-base font-bold text-white">My Albums</h2>
+                  <p className="text-musify-text-muted text-[13px] mt-0.5">Create albums and add your songs</p>
                 </div>
+                <button onClick={() => setShowCreateAlbum(true)} className="px-5 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-[14px] transition flex items-center gap-2 shrink-0">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Create Album
+                </button>
               </div>
-              <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
+              <div className="rounded-2xl bg-musify-card/80 border border-white/10 p-6 lg:p-8 shadow-lg shadow-black/20">
                 {albumsLoading ? (
                   <div className="flex justify-center py-12">
                     <span className="w-10 h-10 border-2 border-musify-teal/40 border-t-musify-teal rounded-full animate-spin" />
@@ -765,34 +749,44 @@ export default function SingerDashboardPage() {
                     <div className="w-16 h-16 rounded-2xl bg-musify-teal/20 flex items-center justify-center mx-auto mb-4">
                       <AlbumIcon className="w-8 h-8 text-musify-teal" />
                     </div>
-                    <p className="text-white font-medium">No albums yet</p>
-                    <p className="text-musify-text-muted text-sm mt-1">Create an album and add your songs to it</p>
-                    <button onClick={() => setShowCreateAlbum(true)} className="mt-4 px-6 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-sm transition">
+                    <p className="text-white font-medium text-[15px]">No albums yet</p>
+                    <p className="text-musify-text-muted text-[13px] mt-1">Create an album and add your songs to it</p>
+                    <button onClick={() => setShowCreateAlbum(true)} className="mt-4 px-6 py-2.5 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white font-medium text-[14px] transition">
                       Create Album
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {albums.map((album) => {
-                      const songCount = Array.isArray(album.songs) ? album.songs.length : 0;
-                      const firstSong = Array.isArray(album.songs) && album.songs.length > 0 ? (album.songs[0] as { coverImage?: string }) : null;
-                      const coverUrl = album.coverImage || firstSong?.coverImage;
-                      return (
-                        <div key={album._id} className="rounded-xl bg-white/5 border border-white/10 p-4 hover:border-musify-teal/30 transition">
-                          <Link href={`/album?album=${encodeURIComponent(album.name)}&artist=${encodeURIComponent(album.artist)}`} className="block">
-                            <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
-                              <img src={getCoverImageUrl(coverUrl, album._id || album.name)} alt={album.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, album._id || album.name); }} />
-                            </div>
-                            <h3 className="font-semibold text-white truncate">{album.name}</h3>
-                            <p className="text-sm text-musify-text-muted">{songCount} song{songCount !== 1 ? 's' : ''}</p>
-                          </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {albums.slice((albumsPage - 1) * ALBUMS_PER_PAGE, albumsPage * ALBUMS_PER_PAGE).map((album) => {
+                        const songCount = Array.isArray(album.songs) ? album.songs.length : 0;
+                        const firstSong = Array.isArray(album.songs) && album.songs.length > 0 ? (album.songs[0] as { coverImage?: string }) : null;
+                        const coverUrl = album.coverImage || firstSong?.coverImage;
+                        return (
+                          <div key={album._id} className="group rounded-xl bg-white/5 border border-white/10 p-2.5 hover:border-musify-teal/30 hover:bg-white/[0.07] transition-all duration-200 overflow-hidden">
+                            <Link href={`/album?album=${encodeURIComponent(album.name)}&artist=${encodeURIComponent(album.artist)}`} className="block">
+                              <div className="h-32 w-full rounded-lg overflow-hidden mb-2 bg-white/5">
+                                <img src={getCoverImageUrl(coverUrl, album._id || album.name)} alt={album.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, album._id || album.name); }} />
+                              </div>
+                              <h3 className="font-semibold text-white truncate text-[14px] leading-tight">{album.name}</h3>
+                              <p className="text-[12px] text-musify-text-muted mt-0.5">{songCount} song{songCount !== 1 ? 's' : ''}</p>
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <Pagination
+                      currentPage={albumsPage}
+                      totalItems={albums.length}
+                      perPage={ALBUMS_PER_PAGE}
+                      onPageChange={setAlbumsPage}
+                      itemLabel="albums"
+                      showItemCount={albums.length > 0}
+                    />
+                  </>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {/* STATISTICS PAGE: Song statistics */}
@@ -800,9 +794,9 @@ export default function SingerDashboardPage() {
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {kpis.map((kpi, i) => (
-                  <div key={i} className="rounded-2xl bg-musify-card border border-white/10 p-6">
-                    <p className="text-sm font-medium text-musify-text-muted mb-1">{kpi.label}</p>
-                    <p className="text-3xl font-bold text-white">{kpi.value}</p>
+                    <div key={i} className="rounded-xl bg-musify-card border border-white/10 p-5">
+                    <p className="text-[13px] font-medium text-musify-text-muted mb-1">{kpi.label}</p>
+                    <p className="text-2xl font-bold text-white">{kpi.value}</p>
                     {(kpi.change !== 0) && (
                       <p className={`text-sm font-medium mt-2 flex items-center gap-1 ${kpi.positive ? 'text-musify-teal' : 'text-musify-pink'}`}>
                         {kpi.positive ? <span>↑</span> : <span>↓</span>}+{kpi.change}% for 7 last days
@@ -891,8 +885,8 @@ export default function SingerDashboardPage() {
 
               {/* My Portfolio - song cards */}
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">My Portfolio</h3>
-                <Link href="/singer-dashboard?nav=songs" className="text-sm text-musify-teal hover:underline">See all</Link>
+                <h3 className="text-base font-semibold text-white">My Portfolio</h3>
+                <Link href="/singer-dashboard?nav=songs" className="text-[13px] text-musify-teal hover:underline">See all</Link>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 {portfolioSongs.length === 0 ? (
@@ -901,14 +895,14 @@ export default function SingerDashboardPage() {
                   </div>
                 ) : (
                   portfolioSongs.map((song) => (
-                    <div key={song._id} className="rounded-2xl bg-musify-card border border-white/10 p-4">
-                      <div className="w-12 h-12 rounded-xl bg-musify-teal/20 flex items-center justify-center mb-3">
-                        <svg className="w-6 h-6 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    <div key={song._id} className="rounded-xl bg-musify-card border border-white/10 p-3">
+                      <div className="aspect-square min-h-[80px] rounded-lg overflow-hidden mb-2 bg-musify-teal/20">
+                        <img src={getCoverImageUrl(song.coverImage, song._id || song.title)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }} />
                       </div>
-                      <p className="font-semibold text-white truncate">{song.title}</p>
-                      <p className="text-musify-teal text-sm mt-1">+{(song.playCount || 0) > 0 ? '12' : '0'}%</p>
-                      <p className="text-musify-text-muted text-xs mt-1">{song.artist}</p>
-                      <p className="text-musify-text-muted text-xs">{(song.playCount || 0).toLocaleString()} plays</p>
+                      <p className="font-semibold text-white truncate text-[14px]">{song.title}</p>
+                      <p className="text-musify-teal text-[13px] mt-0.5">+{(song.playCount || 0) > 0 ? '12' : '0'}%</p>
+                      <p className="text-musify-text-muted text-[12px] truncate">{song.artist}</p>
+                      <p className="text-musify-text-muted text-[12px]">{(song.playCount || 0).toLocaleString()} plays</p>
                     </div>
                   ))
                 )}
@@ -958,7 +952,7 @@ export default function SingerDashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 rounded-2xl bg-musify-card border border-white/10 p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Portfolio Overview</h3>
+                    <h3 className="text-base font-semibold text-white">Portfolio Overview</h3>
                     <div className="flex gap-1">
                       {(['all','gainers','losers'] as const).map((f) => (
                         <button key={f} onClick={() => setTableFilter(f)} className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition ${tableFilter === f ? 'bg-musify-teal text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{f}</button>
@@ -966,7 +960,7 @@ export default function SingerDashboardPage() {
                     </div>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-[14px]">
                       <thead>
                         <tr className="text-musify-text-muted text-left border-b border-white/5">
                           <th className="pb-3 font-medium">Song</th>
@@ -982,13 +976,11 @@ export default function SingerDashboardPage() {
                           topSongs.map((song) => (
                           <tr key={song._id} className="border-b border-white/5 last:border-0">
                             <td className="py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-musify-teal/20 flex items-center justify-center shrink-0">
-                                  <svg className="w-4 h-4 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                                </div>
+                              <div className="flex items-center gap-3">
+                                <img src={getCoverImageUrl(song.coverImage, song._id || song.title)} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }} />
                                 <div>
-                                  <p className="font-medium text-white">{song.title}</p>
-                                  <p className="text-musify-text-muted text-xs">{song.artist}</p>
+                                  <p className="font-medium text-white text-[14px]">{song.title}</p>
+                                  <p className="text-musify-text-muted text-[12px]">{song.artist}</p>
                                 </div>
                               </div>
                             </td>
@@ -1006,7 +998,7 @@ export default function SingerDashboardPage() {
                 </div>
                 <div className="rounded-2xl bg-musify-card border border-white/10 p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Watchlist</h3>
+                    <h3 className="text-base font-semibold text-white">Watchlist</h3>
                     <div className="flex gap-1">
                       {(['most','gainers','losers'] as const).map((f) => (
                         <button key={f} onClick={() => setWatchFilter(f)} className={`px-2 py-1 rounded-lg text-xs font-medium capitalize transition ${watchFilter === f ? 'bg-musify-teal text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{f === 'most' ? 'Most Viewed' : f}</button>
@@ -1015,15 +1007,13 @@ export default function SingerDashboardPage() {
                   </div>
                   <div className="space-y-3">
                     {topSongs.slice(0, 4).map((song) => (
-                      <div key={song._id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition">
-                        <div className="w-10 h-10 rounded-lg bg-musify-teal/20 flex items-center justify-center shrink-0">
-                          <svg className="w-5 h-5 text-musify-teal" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                        </div>
+                      <div key={song._id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition">
+                        <img src={getCoverImageUrl(song.coverImage, song._id || song.title)} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white truncate">{song.title}</p>
-                          <p className="text-musify-text-muted text-xs">{song.artist}</p>
+                          <p className="font-medium text-white truncate text-[14px]">{song.title}</p>
+                          <p className="text-musify-text-muted text-[12px]">{song.artist}</p>
                         </div>
-                        <span className="text-musify-teal text-sm font-medium">+{(song.playCount || 0) > 0 ? '12' : '0'}%</span>
+                        <span className="text-musify-teal text-[13px] font-medium">+{(song.playCount || 0) > 0 ? '12' : '0'}%</span>
                       </div>
                     ))}
                     {topSongs.length === 0 && (

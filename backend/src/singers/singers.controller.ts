@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { SingersService } from './singers.service';
@@ -59,11 +60,26 @@ export class SingersController {
     return this.singersService.uploadSong(userId, dto);
   }
 
+  @Get('songs/me/count')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SINGER')
+  getMySongsCount(@CurrentUser('_id') userId: string) {
+    return this.singersService.getMySongsCount(userId);
+  }
+
   @Get('songs/me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SINGER')
-  getMySongs(@CurrentUser('_id') userId: string) {
-    return this.singersService.getMySongs(userId);
+  getMySongs(
+    @CurrentUser('_id') userId: string,
+    @Query('skip') skip?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.singersService.getMySongs(
+      userId,
+      parseInt(skip || '0'),
+      parseInt(limit || '20'),
+    );
   }
 
   @Patch('songs/:songId')

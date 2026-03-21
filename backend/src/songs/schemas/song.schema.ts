@@ -43,3 +43,9 @@ export class Song {
 }
 
 export const SongSchema = SchemaFactory.createForClass(Song);
+
+// Indexes for fast queries with 1M+ songs
+SongSchema.index({ isApproved: 1, genre: 1, playCount: -1, createdAt: -1 });
+SongSchema.index({ isApproved: 1, singerId: 1, createdAt: -1 });
+SongSchema.index({ isApproved: 1, createdAt: -1 });
+SongSchema.index({ isApproved: 1, artist: 1 });

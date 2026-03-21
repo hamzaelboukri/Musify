@@ -77,10 +77,16 @@ export class SingersService {
     });
   }
 
-  async getMySongs(userId: string) {
+  async getMySongs(userId: string, skip = 0, limit = 20) {
     const profile = await this.getProfileByUserId(userId);
     if (!profile.isApproved) throw new ForbiddenException('Singer profile not approved');
-    return this.songsService.findBySinger(profile._id.toString(), true);
+    return this.songsService.findBySinger(profile._id.toString(), true, skip, limit);
+  }
+
+  async getMySongsCount(userId: string) {
+    const profile = await this.getProfileByUserId(userId);
+    if (!profile.isApproved) throw new ForbiddenException('Singer profile not approved');
+    return this.songsService.countBySinger(profile._id.toString(), true);
   }
 
   async updateSong(songId: string, userId: string, data: Partial<UploadSongData>) {

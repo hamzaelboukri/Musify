@@ -26,10 +26,12 @@ export default function SearchPage() {
   const { searchQuery, setSearchQuery } = useSearch();
   const { user } = useAuth();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [songsTotal, setSongsTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   const q = qFromUrl || searchQuery;
+  const SEARCH_PAGE_SIZE = 20;
 
   useEffect(() => {
     if (qFromUrl) setSearchQuery(qFromUrl);
@@ -47,15 +49,30 @@ export default function SearchPage() {
   useEffect(() => {
     if (!q.trim()) {
       setSongs([]);
+      setSongsTotal(0);
       setLoading(false);
       return;
     }
     setLoading(true);
-    songService
-      .getAll({ search: q.trim(), limit: 50 })
-      .then(({ data }) => setSongs((data as Song[]) || []))
+    Promise.all([
+      songService.getAll({ search: q.trim(), skip: 0, limit: SEARCH_PAGE_SIZE }),
+      songService.getCount({ search: q.trim() }),
+    ])
+      .then(([songsRes, countRes]) => {
+        setSongs((songsRes.data as Song[]) || []);
+        setSongsTotal(typeof countRes.data === 'number' ? countRes.data : 0);
+      })
       .finally(() => setLoading(false));
   }, [q]);
+
+  const loadMore = () => {
+    if (!q.trim()) return;
+    setLoading(true);
+    songService
+      .getAll({ search: q.trim(), skip: songs.length, limit: SEARCH_PAGE_SIZE })
+      .then(({ data }) => setSongs((prev) => [...prev, ...((data as Song[]) || [])]))
+      .finally(() => setLoading(false));
+  };
 
   const removeFavorite = async (songId: string) => {
     try {
@@ -116,17 +133,30 @@ export default function SearchPage() {
           <p className="text-white/50 text-[13px] mt-1">Try different keywords or check your spelling</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {songs.map((song) => (
-            <SongCard
-              key={song._id}
-              song={song}
-              queue={songs}
-              onFavorite={user ? (favorites.has(song._id) ? removeFavorite : addFavorite) : undefined}
-              isFavorite={favorites.has(song._id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {songs.map((song) => (
+              <SongCard
+                key={song._id}
+                song={song}
+                queue={songs}
+                onFavorite={user ? (favorites.has(song._id) ? removeFavorite : addFavorite) : undefined}
+                isFavorite={favorites.has(song._id)}
+              />
+            ))}
+          </div>
+          {songs.length < songsTotal && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={loadMore}
+                disabled={loading}
+                className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-[14px] disabled:opacity-50 transition"
+              >
+                {loading ? 'Loading...' : `Load more (${songs.length} of ${songsTotal})`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
