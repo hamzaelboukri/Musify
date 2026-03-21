@@ -15,6 +15,11 @@ npm run test:e2e      # tests HTTP + MongoDB en mémoire (test/app.e2e-spec.ts)
   - **Contrôleurs** : `AuthController`, `SongsController` (mock des services)
   - **Services** : `AuthService`, `SongsService`, `UsersService`, `PlaylistsService`, `FavoritesService` (mocks Mongoose)
 - **E2E** : API `GET /api/songs/stats` et `GET /api/songs/count` via Supertest + `mongodb-memory-server` (pas besoin de MongoDB local).
+- **Intégration frontend-backend** : `npm run test:integration` — teste le flux complet :
+  - **Auth** : register, login, rejet mot de passe incorrect
+  - **Songs** : liste, stats (lecture/catalogue)
+  - **Playlists** : création, liste (avec JWT)
+  - **Favoris** : liste (avec JWT), protection 401 sans token
 
 ## Frontend (Next.js + Vitest)
 
