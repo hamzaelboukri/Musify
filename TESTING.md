@@ -11,7 +11,9 @@ npm run test:cov      # avec couverture
 npm run test:e2e      # tests HTTP + MongoDB en mémoire (test/app.e2e-spec.ts)
 ```
 
-- **Unitaires** : `AuthService`, `SongsService` (mocks Mongoose).
+- **Unitaires** :
+  - **Contrôleurs** : `AuthController`, `SongsController` (mock des services)
+  - **Services** : `AuthService`, `SongsService`, `UsersService`, `PlaylistsService`, `FavoritesService` (mocks Mongoose)
 - **E2E** : API `GET /api/songs/stats` et `GET /api/songs/count` via Supertest + `mongodb-memory-server` (pas besoin de MongoDB local).
 
 ## Frontend (Next.js + Vitest)
