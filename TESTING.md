@@ -12,8 +12,8 @@ npm run test:e2e      # tests HTTP + MongoDB en mémoire (test/app.e2e-spec.ts)
 ```
 
 - **Unitaires** :
-  - **Contrôleurs** : `AuthController`, `SongsController` (mock des services)
-  - **Services** : `AuthService`, `SongsService`, `UsersService`, `PlaylistsService`, `FavoritesService` (mocks Mongoose)
+  - **Contrôleurs** : `AuthController`, `SongsController`, `PlaylistsController`, `FavoritesController`, `AlbumsController`, `UsersController` (mock des services)
+  - **Services** : `AuthService`, `SongsService`, `UsersService`, `PlaylistsService`, `FavoritesService`, `AlbumsService`, `SingersService`, `StatsService` (mocks Mongoose)
 - **E2E** : API `GET /api/songs/stats` et `GET /api/songs/count` via Supertest + `mongodb-memory-server` (pas besoin de MongoDB local).
 - **Intégration frontend-backend** : `npm run test:integration` — teste le flux complet :
   - **Auth** : register, login, rejet mot de passe incorrect
@@ -31,13 +31,39 @@ npm run test:watch    # vitest en continu
 npm run test:cov      # couverture (nécessite @vitest/coverage-v8)
 ```
 
-- **Unitaires** : `utils/coverImage.test.ts`, `components/Pagination.test.tsx` (React Testing Library).
+- **Unitaires** : `utils/coverImage.test.ts`, `components/Pagination.test.tsx`, `components/SongCard.test.tsx`, `components/AlbumCard.test.tsx` (React Testing Library). Vitest exclut le dossier `e2e/` (tests Playwright).
+
+## E2E navigateur (Playwright) – parcours utilisateur
+
+Simule un vrai utilisateur : connexion, écoute, création de playlist.
+
+**Prérequis** :
+1. Backend + MongoDB en cours d'exécution (`docker compose up -d` ou `cd backend && npm run start:dev`)
+2. Base de données seedée : `cd backend && npm run seed`
+
+```bash
+cd frontend
+npm install
+npx playwright install chromium   # première fois : installer le navigateur
+npm run test:e2e
+```
+
+Ou en mode UI : `npm run test:e2e:ui`
+
+**Parcours couverts** :
+- Login avec user@musify.com / User123!
+- Clic sur « Play all » pour lancer la lecture
+- Navigation vers Library (playlists), création d’une playlist
 
 ## Tout lancer (racine du repo)
 
-Depuis deux terminaux ou en chaîne :
+```powershell
+# Backend
+cd backend; npm test; npm run test:e2e
 
-```bash
-cd backend && npm test && npm run test:e2e
-cd ../frontend && npm test
+# Frontend
+cd frontend; npm test
+
+# E2E navigateur (backend + mongo doivent tourner)
+cd frontend; npm run test:e2e
 ```
