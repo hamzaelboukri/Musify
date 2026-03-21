@@ -23,8 +23,8 @@ export function TopHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-[#0d0d0d]/95 backdrop-blur-xl px-6 py-4 flex items-center gap-6 border-b border-white/5">
-      <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl">
+    <header className="sticky top-0 z-20 bg-gradient-to-b from-[#0d0d0d] via-[#0d0d0d] to-[#0d0d0d]/80 backdrop-blur-xl px-6 py-4 flex items-center gap-6 shadow-[0_1px_0_0_rgba(255,255,255,0.03),0_4px_12px_-2px_rgba(0,212,255,0.05)]">
+      <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md">
         <div className="relative">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
@@ -34,7 +34,7 @@ export function TopHeader() {
             placeholder="Search songs, artists, albums..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-12 py-2.5 rounded-xl bg-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#00d4ff]/40 focus:border-[#00d4ff]/30 border border-transparent"
+            className="w-full pl-12 pr-12 py-2.5 rounded-xl bg-white/10 text-[15px] text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#00d4ff]/40 focus:border-[#00d4ff]/30 border border-transparent"
             aria-label="Search"
           />
           {searchQuery ? (

@@ -81,7 +81,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-full px-6 py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-white mb-6">
         {q.trim() ? (
           <>
             Search results for <span className="text-musify-teal">&quot;{q}&quot;</span>
@@ -103,7 +103,7 @@ export default function SearchPage() {
             </svg>
           </div>
           <p className="text-white/70 font-medium">Type something to search</p>
-          <p className="text-white/50 text-sm mt-1">Search by song title, artist, or album</p>
+          <p className="text-white/50 text-[13px] mt-1">Search by song title, artist, or album</p>
         </div>
       ) : songs.length === 0 ? (
         <div className="py-20 text-center">
@@ -113,7 +113,7 @@ export default function SearchPage() {
             </svg>
           </div>
           <p className="text-white/70 font-medium">No results found</p>
-          <p className="text-white/50 text-sm mt-1">Try different keywords or check your spelling</p>
+          <p className="text-white/50 text-[13px] mt-1">Try different keywords or check your spelling</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

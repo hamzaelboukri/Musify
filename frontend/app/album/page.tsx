@@ -117,7 +117,7 @@ export default function AlbumPage() {
           </svg>
         </div>
         <p className="text-xl font-medium text-white/80">No tracks found</p>
-        <p className="text-white/50 text-sm max-w-sm text-center">This album might not exist or has been removed.</p>
+        <p className="text-white/50 text-[13px] max-w-sm text-center">This album might not exist or has been removed.</p>
         <Link
           href="/"
           className="px-6 py-3 rounded-full bg-musify-teal hover:bg-musify-accent-hover text-white font-semibold transition"
@@ -251,17 +251,17 @@ export default function AlbumPage() {
                   <img
                     src={getCoverImageUrl(song.coverImage || songs[0]?.coverImage, song._id || song.title)}
                     alt=""
-                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
+                    className="w-11 h-11 rounded-lg object-cover flex-shrink-0 hidden sm:block"
                     onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
                   />
                   <div className="min-w-0">
-                    <p className={`font-medium truncate ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>
+                    <p className={`font-medium truncate text-[14px] ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>
                       {song.title}
                     </p>
-                    <p className="text-white/50 text-sm truncate">{song.artist}</p>
+                    <p className="text-white/50 text-[13px] truncate">{song.artist}</p>
                   </div>
                 </div>
-                <span className="flex items-center justify-end text-white/50 text-sm">
+                <span className="flex items-center justify-end text-white/50 text-[13px]">
                   {formatDuration(song.duration)}
                 </span>
               </div>

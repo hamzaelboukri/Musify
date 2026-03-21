@@ -1,7 +1,6 @@
 'use client';
 
 import { usePlayer } from '@/contexts/PlayerContext';
-import { getCoverImageUrl } from '@/utils/coverImage';
 
 export function MusicPlayer() {
   const { currentSong, isPlaying, progress, volume, setVolume, toggle, stop, next, prev, seek } = usePlayer();
@@ -14,26 +13,8 @@ export function MusicPlayer() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#121212]/98 backdrop-blur-sm border-t border-white/5 px-4 py-2">
-      <div className="max-w-[1800px] mx-auto flex items-center gap-4">
-        <div className="flex items-center gap-4 min-w-[280px]">
-          <img
-            src={getCoverImageUrl(currentSong.coverImage, currentSong._id || currentSong.title)}
-            onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, currentSong._id || currentSong.title); }}
-            alt={currentSong.title}
-            className="w-14 h-14 rounded object-cover shadow-lg"
-          />
-          <div className="min-w-0">
-            <p className="font-medium text-white truncate">{currentSong.title}</p>
-            <p className="text-sm text-[#b3b3b3] truncate">{currentSong.artist}</p>
-          </div>
-          <button className="p-2 text-[#b3b3b3] hover:text-white transition">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="flex-1 flex flex-col items-center gap-1 max-w-[722px]">
+      <div className="max-w-[1800px] mx-auto flex items-center justify-center gap-6">
+        <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-4">
             <button className="p-1 text-[#b3b3b3] hover:text-white transition">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -88,7 +69,7 @@ export function MusicPlayer() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 min-w-[180px] justify-end">
+        <div className="flex items-center gap-2">
           <button onClick={stop} className="p-2 text-[#b3b3b3] hover:text-white transition" title="Stop">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h12v12H6z" />

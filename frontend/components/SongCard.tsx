@@ -37,10 +37,10 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
 
   return (
     <div
-      className="group p-4 rounded-xl bg-[#1e1e22] hover:bg-[#28282e] border border-white/5 transition-all cursor-pointer"
+      className="group p-3 rounded-xl bg-[#1e1e22] hover:bg-[#28282e] border border-white/5 transition-all cursor-pointer"
       onClick={() => play(song, queue)}
     >
-        <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-[#2a2a2e] shadow-lg">
+        <div className="relative aspect-square min-h-[140px] rounded-xl overflow-hidden mb-2 bg-[#2a2a2e] shadow-lg">
         <img
           src={imageUrl}
           alt={song.title}
@@ -98,9 +98,9 @@ export function SongCard({ song, queue, onFavorite, isFavorite }: SongCardProps)
           </button>
         )}
       </div>
-      <h3 className="font-semibold text-white truncate">{song.title}</h3>
-      <p className="text-sm text-white/60 truncate">{song.artist}</p>
-      <div className="flex justify-between mt-1 text-xs text-white/40">
+      <h3 className="font-bold text-white truncate text-[15px] leading-tight">{song.title}</h3>
+      <p className="text-[13px] text-white/60 truncate mt-0.5">{song.artist}</p>
+      <div className="flex justify-between mt-1.5 text-[12px] text-white/40">
         <span>{formatDuration(song.duration)}</span>
         {song.playCount != null && <span>{song.playCount} plays</span>}
       </div>

@@ -23,7 +23,7 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 bg-[#0a0a0a] flex flex-col py-6 border-r border-white/5">
       <Link href="/" className="px-6 mb-6 flex items-center gap-3">
         <img src="/musify-logo.png" alt="Musify" className="w-10 h-10 object-contain" />
-        <span className="text-xl font-bold text-white">Musify</span>
+        <span className="text-lg font-bold text-white">Musify</span>
       </Link>
 
       <nav className="flex flex-col gap-1 px-3 flex-1">
@@ -38,7 +38,7 @@ export function Sidebar() {
               }`}
             >
               <item.icon className="w-6 h-6 shrink-0" />
-              <span className="font-medium">{item.label}</span>
+              <span className="font-medium text-[14px]">{item.label}</span>
             </Link>
           );
         })}
@@ -46,14 +46,14 @@ export function Sidebar() {
         <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-1">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition">
             <ThemeToggle />
-            <span className="font-medium">Theme</span>
+            <span className="font-medium text-[14px]">Theme</span>
           </div>
           <Link
             href="/playlists"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
           >
             <PlusIcon className="w-6 h-6 shrink-0" />
-            <span className="font-medium">Create Playlist</span>
+            <span className="font-medium text-[14px]">Create Playlist</span>
           </Link>
           {user?.role === 'SINGER' && (
             <Link
@@ -61,7 +61,7 @@ export function Sidebar() {
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
             >
               <DashboardIcon className="w-6 h-6 shrink-0" />
-              <span className="font-medium">Dashboard</span>
+              <span className="font-medium text-[14px]">Dashboard</span>
             </Link>
           )}
           {user?.role === 'ADMIN' && (
@@ -70,7 +70,7 @@ export function Sidebar() {
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"
             >
               <ShieldIcon className="w-6 h-6 shrink-0" />
-              <span className="font-medium">Admin</span>
+              <span className="font-medium text-[14px]">Admin</span>
             </Link>
           )}
           <Link
@@ -80,7 +80,7 @@ export function Sidebar() {
             }`}
           >
             <InfoIcon className="w-6 h-6 shrink-0" />
-            <span className="font-medium">How it works</span>
+            <span className="font-medium text-[14px]">How it works</span>
           </Link>
           <Link
             href={user?.role === 'SINGER' ? '/singer-dashboard?nav=profile' : '/profile'}
@@ -91,7 +91,7 @@ export function Sidebar() {
             }`}
           >
             <SettingsIcon className="w-6 h-6 shrink-0" />
-            <span className="font-medium">Profile</span>
+            <span className="font-medium text-[14px]">Profile</span>
           </Link>
           {user && (
             <button
@@ -99,7 +99,7 @@ export function Sidebar() {
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition w-full text-left"
             >
               <LogoutIcon className="w-6 h-6 shrink-0" />
-              <span className="font-medium">Log out</span>
+              <span className="font-medium text-[14px]">Log out</span>
             </button>
           )}
         </div>

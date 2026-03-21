@@ -49,7 +49,7 @@ export default function PlaylistsPage() {
 
   return (
     <div className="px-6 py-8 min-h-full">
-      <h1 className="text-3xl font-bold text-white mb-8">My Playlists</h1>
+      <h1 className="text-2xl font-bold text-white mb-8">My Playlists</h1>
       <form onSubmit={createPlaylist} className="flex gap-2 mb-8 max-w-2xl">
         <input
           type="text"
@@ -74,7 +74,7 @@ export default function PlaylistsPage() {
             </svg>
           </div>
           <p className="text-white/70 font-medium">No playlists yet</p>
-          <p className="text-white/50 text-sm mt-1">Create one above to get started</p>
+          <p className="text-white/50 text-[13px] mt-1">Create one above to get started</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

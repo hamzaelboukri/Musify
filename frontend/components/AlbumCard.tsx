@@ -19,6 +19,8 @@ type Song = {
 type AlbumCardProps = {
   song: Song;
   queue?: Song[];
+  showDuration?: boolean;
+  formatDuration?: (sec: number) => string;
 };
 
 function albumHref(song: Song) {
@@ -30,7 +32,7 @@ function albumHref(song: Song) {
   return `/album?songId=${song._id}`;
 }
 
-export function AlbumCard({ song, queue }: AlbumCardProps) {
+export function AlbumCard({ song, queue, showDuration, formatDuration }: AlbumCardProps) {
   const { play, currentSong, isPlaying } = usePlayer();
   const addToPlaylist = useAddToPlaylist();
   const { user } = useAuth();
@@ -40,9 +42,9 @@ export function AlbumCard({ song, queue }: AlbumCardProps) {
   return (
     <Link
       href={albumHref(song)}
-      className="album-card-premium group block p-4 cursor-pointer"
+      className="album-card-premium group block p-3 cursor-pointer"
     >
-      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-[#2a2a2e] shadow-xl">
+      <div className="relative aspect-square min-h-[140px] rounded-xl overflow-hidden mb-2 bg-[#2a2a2e] shadow-xl">
         <img
           src={image}
           alt={song.title}
@@ -89,8 +91,10 @@ export function AlbumCard({ song, queue }: AlbumCardProps) {
           </div>
         </div>
       </div>
-      <h3 className="font-semibold text-white truncate text-[15px]">{song.title}</h3>
-      <p className="text-sm text-white/55 truncate mt-1">{song.artist}</p>
+      <h3 className="font-bold text-white truncate text-[15px] leading-tight">{song.title}</h3>
+      <p className="text-[13px] text-white/60 truncate mt-0.5">
+        {song.artist}{showDuration && formatDuration ? ` · ${formatDuration(song.duration)}` : ''}
+      </p>
     </Link>
   );
 }

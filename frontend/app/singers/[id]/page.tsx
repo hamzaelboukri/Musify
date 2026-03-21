@@ -249,17 +249,17 @@ export default function SingerProfilePage() {
                       <img
                         src={getCoverImageUrl(song.coverImage || singer.image, song._id || song.title)}
                         alt=""
-                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
+                        className="w-11 h-11 rounded-lg object-cover flex-shrink-0 hidden sm:block"
                         onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
                       />
                       <div className="min-w-0">
-                        <p className={`font-medium truncate ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>
+                        <p className={`font-medium truncate text-[14px] ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>
                           {song.title}
                         </p>
-                        <p className="text-white/50 text-sm truncate">{song.artist}</p>
+                        <p className="text-white/50 text-[13px] truncate">{song.artist}</p>
                       </div>
                     </div>
-                    <span className="flex items-center justify-end text-white/50 text-sm">
+                    <span className="flex items-center justify-end text-white/50 text-[13px]">
                       {formatDuration(song.duration)}
                     </span>
                   </div>
