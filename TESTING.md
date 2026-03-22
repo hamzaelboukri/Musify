@@ -12,8 +12,8 @@ npm run test:e2e      # tests HTTP + MongoDB en mémoire (test/app.e2e-spec.ts)
 ```
 
 - **Unitaires** :
-  - **Contrôleurs** : `AuthController`, `SongsController`, `PlaylistsController`, `FavoritesController`, `AlbumsController`, `UsersController` (mock des services)
-  - **Services** : `AuthService`, `SongsService`, `UsersService`, `PlaylistsService`, `FavoritesService`, `AlbumsService`, `SingersService`, `StatsService` (mocks Mongoose)
+  - **Contrôleurs** : `AuthController`, `SongsController`, `PlaylistsController`, `FavoritesController`, `AlbumsController`, `UsersController`, `SingersController`, `StatsController`, `AdminController`, `SessionsController`, `StreamingController`, `UploadController`, `UploadsServeController` (mock des services)
+  - **Services** : `AuthService`, `SongsService`, `UsersService`, `PlaylistsService`, `FavoritesService`, `AlbumsService`, `SingersService`, `StatsService`, `AdminService`, `SessionsService`, `StreamingService`, `S3Service` (mocks Mongoose / dépendances)
 - **E2E** : API `GET /api/songs/stats` et `GET /api/songs/count` via Supertest + `mongodb-memory-server` (pas besoin de MongoDB local).
 - **Intégration frontend-backend** : `npm run test:integration` — teste le flux complet :
   - **Auth** : register, login, rejet mot de passe incorrect
@@ -31,7 +31,7 @@ npm run test:watch    # vitest en continu
 npm run test:cov      # couverture (nécessite @vitest/coverage-v8)
 ```
 
-- **Unitaires** : `utils/coverImage.test.ts`, `components/Pagination.test.tsx`, `components/SongCard.test.tsx`, `components/AlbumCard.test.tsx` (React Testing Library). Vitest exclut le dossier `e2e/` (tests Playwright).
+- **Unitaires** : `utils/coverImage.test.ts`, `components/Pagination.test.tsx`, `components/SongCard.test.tsx`, `components/AlbumCard.test.tsx`, `components/MusicPlayer.test.tsx`, `components/Sidebar.test.tsx`, `components/AddToPlaylistDialog.test.tsx`, `components/PlaylistCard.test.tsx`, `components/SingerCard.test.tsx`, `components/ThemeToggle.test.tsx` (React Testing Library). Vitest exclut le dossier `e2e/` (tests Playwright).
 
 ## E2E navigateur (Playwright) – parcours utilisateur
 
