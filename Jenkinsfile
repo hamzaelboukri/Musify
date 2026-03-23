@@ -101,6 +101,50 @@ pipeline {
         archiveArtifacts artifacts: 'frontend/.next/**/*', fingerprint: true, allowEmptyArchive: true
       }
     }
+
+    stage('Docker Build') {
+      when {
+        expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+      }
+      steps {
+        script {
+          def tag = env.BUILD_NUMBER ?: 'latest'
+          def imageBackend = "musify-backend:${tag}"
+          def imageFrontend = "musify-frontend:${tag}"
+
+          sh "docker build -t ${imageBackend} ./backend"
+          sh "docker build -t ${imageFrontend} --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001/api --build-arg BACKEND_URL=http://localhost:3001 ./frontend"
+        }
+      }
+    }
+
+    stage('Docker Push') {
+      when {
+        expression {
+          (currentBuild.result == null || currentBuild.result == 'SUCCESS') &&
+          env.DOCKER_REGISTRY != null && env.DOCKER_REGISTRY != ''
+        }
+      }
+      steps {
+        script {
+          def tag = env.BUILD_NUMBER ?: 'latest'
+          def registry = env.DOCKER_REGISTRY ?: 'docker.io'
+          def imageBackend = "${registry}/musify-backend:${tag}"
+          def imageFrontend = "${registry}/musify-frontend:${tag}"
+
+          sh "docker tag musify-backend:${tag} ${imageBackend}"
+          sh "docker tag musify-frontend:${tag} ${imageFrontend}"
+          withCredentials([usernamePassword(credentialsId: 'docker-registry', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            script {
+              def loginServer = (registry.startsWith('ghcr.io')) ? 'ghcr.io' : 'docker.io'
+              sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin ${loginServer}"
+            }
+            sh "docker push ${imageBackend}"
+            sh "docker push ${imageFrontend}"
+          }
+        }
+      }
+    }
   }
 
   post {

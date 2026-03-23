@@ -1,7 +1,5 @@
 # Pipeline Jenkins - Musify
 
-> Dernière mise à jour : test webhook/push
-
 ## Prérequis
 
 ### 1. Jenkins
@@ -33,6 +31,11 @@
    - Script Path : `Jenkinsfile`
 4. **Save**
 
+## Prérequis Docker (pour build images)
+
+- **Docker** installé sur l’agent Jenkins (ou socket Docker exposé)
+- Pour le **push** : credentials `docker-registry` (Username + Password) dans Jenkins
+
 ## Étapes du pipeline
 
 | Stage | Description |
@@ -41,6 +44,16 @@
 | **Backend** (parallèle) | `npm ci` → tests unitaires → build NestJS |
 | **Frontend** (parallèle) | `npm ci` → tests unitaires Vitest → build Next.js |
 | **Archive** | Sauvegarde des artefacts (dist backend, .next frontend) |
+| **Docker Build** | Build des images `musify-backend` et `musify-frontend` (tag = numéro de build) |
+| **Docker Push** | Push vers le registry si `DOCKER_REGISTRY` est défini (optionnel) |
+
+## Docker – Build & Push
+
+- **Build** : à chaque run, construction des images `musify-backend:${BUILD_NUMBER}` et `musify-frontend:${BUILD_NUMBER}`
+- **Push** : si la variable d’environnement `DOCKER_REGISTRY` est définie dans le job :
+  - **Docker Hub** : `DOCKER_REGISTRY=hamzaelboukri` → images `hamzaelboukri/musify-backend`, etc.
+  - **GHCR** : `DOCKER_REGISTRY=ghcr.io/hamzaelboukri` → images `ghcr.io/hamzaelboukri/musify-backend`, etc.
+  - Credentials Jenkins : **Manage Jenkins** → **Credentials** → ajouter un secret "Username with password" avec l’ID `docker-registry`
 
 ## Artefacts archivés
 
