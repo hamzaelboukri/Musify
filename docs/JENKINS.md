@@ -12,7 +12,7 @@
 
 1. **Jenkins** → **Manage Jenkins** → **Global Tool Configuration**
 2. Section **NodeJS** → **Add NodeJS**
-3. Nom : `Node 20`
+3. Nom : `NodeJS-20` (doit correspondre exactement au nom utilisé dans le Jenkinsfile)
 4. Version : cocher **Install automatically** et choisir `20.x` (ou une version LTS)
 5. Sauvegarder
 
