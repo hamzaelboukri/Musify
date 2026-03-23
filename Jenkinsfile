@@ -11,7 +11,7 @@ pipeline {
 
   options {
     buildDiscarder(logRotator(numToKeepStr: '10'))
-    timeout(time: 30, unit: 'MINUTES')
+    timeout(time: 45, unit: 'MINUTES')
     disableConcurrentBuilds()
   }
 
@@ -29,7 +29,8 @@ pipeline {
             stage('Backend Install') {
               steps {
                 dir('backend') {
-                  sh 'npm ci'
+                  sh 'npm config set fetch-timeout 300000 fetch-retries 5 fetch-retry-mintimeout 20000'
+                  retry(2) { sh 'npm ci' }
                 }
               }
             }
@@ -60,7 +61,8 @@ pipeline {
             stage('Frontend Install') {
               steps {
                 dir('frontend') {
-                  sh 'npm ci'
+                  sh 'npm config set fetch-timeout 300000 fetch-retries 5 fetch-retry-mintimeout 20000'
+                  retry(2) { sh 'npm ci' }
                 }
               }
             }

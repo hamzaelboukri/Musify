@@ -13,8 +13,10 @@
 1. **Jenkins** → **Manage Jenkins** → **Global Tool Configuration**
 2. Section **NodeJS** → **Add NodeJS**
 3. Nom : `NodeJS-20` (doit correspondre exactement au nom utilisé dans le Jenkinsfile)
-4. Version : cocher **Install automatically** et choisir `20.x` (ou une version LTS)
+4. Version : cocher **Install automatically** et choisir **20.19+** ou **22.x LTS** (éviter 20.0.0)
 5. Sauvegarder
+
+> **Important** : Utiliser Node 20.19+ ou 22.x. La version 20.0.0 peut provoquer des avertissements EBADENGINE avec Vite et d'autres dépendances.
 
 ### 3. Création du job
 
@@ -74,3 +76,13 @@ stage('E2E') {
 ## Variables d'environnement
 
 Le pipeline utilise `NODE_OPTIONS=--max-old-space-size=4096` pour éviter les OOM sur des projets volumineux. Ajuster si nécessaire dans la section `environment` du `Jenkinsfile`.
+
+## Dépannage
+
+### ERR_SOCKET_TIMEOUT / network timeout
+
+Si `npm ci` échoue avec un timeout réseau :
+- Le pipeline configure `fetch-timeout: 300000` et `fetch-retries: 5`, et réessaie 2 fois
+- Vérifier l'accès à `registry.npmjs.org` depuis le serveur Jenkins
+- Si derrière un proxy : configurer `npm config set proxy` / `https-proxy` dans Jenkins
+- Augmenter le timeout global du job si besoin (défaut : 45 min)
