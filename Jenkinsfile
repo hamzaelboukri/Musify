@@ -134,7 +134,7 @@ pipeline {
 
           sh "docker tag musify-backend:${tag} ${imageBackend}"
           sh "docker tag musify-frontend:${tag} ${imageFrontend}"
-          withCredentials([usernamePassword(credentialsId: 'docker-registry', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             script {
               def loginServer = (registry.startsWith('ghcr.io')) ? 'ghcr.io' : 'docker.io'
               sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin ${loginServer}"

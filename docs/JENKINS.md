@@ -34,7 +34,7 @@
 ## Prérequis Docker (pour build images)
 
 - **Docker** installé sur l’agent Jenkins (ou socket Docker exposé)
-- Pour le **push** : credentials `docker-registry` (Username + Password) dans Jenkins
+- Pour le **push** : credentials `docker-hub-credentials` (Username + Password) dans Jenkins
 
 ## Étapes du pipeline
 
@@ -53,7 +53,7 @@
 - **Push** : si la variable d’environnement `DOCKER_REGISTRY` est définie dans le job :
   - **Docker Hub** : `DOCKER_REGISTRY=hamzaelboukri` → images `hamzaelboukri/musify-backend`, etc.
   - **GHCR** : `DOCKER_REGISTRY=ghcr.io/hamzaelboukri` → images `ghcr.io/hamzaelboukri/musify-backend`, etc.
-  - Credentials Jenkins : **Manage Jenkins** → **Credentials** → ajouter un secret "Username with password" avec l’ID `docker-registry`
+  - Credentials Jenkins : **Manage Jenkins** → **Credentials** → ajouter un secret "Username with password" avec l’ID `docker-hub-credentials`
 
 ## Artefacts archivés
 
