@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -29,8 +30,8 @@ export class AdminController {
   }
 
   @Post('users/:userId/ban')
-  banUser(@Param('userId') userId: string) {
-    return this.adminService.banUser(userId);
+  banUser(@Param('userId') userId: string, @CurrentUser('_id') currentUserId: string) {
+    return this.adminService.banUser(userId, currentUserId?.toString?.());
   }
 
   @Post('users/:userId/unban')
@@ -56,6 +57,11 @@ export class AdminController {
   @Get('songs/pending')
   getPendingSongs() {
     return this.adminService.getPendingSongs();
+  }
+
+  @Get('songs')
+  getAllSongs(@Query('skip') skip?: string, @Query('limit') limit?: string) {
+    return this.adminService.getAllSongs(parseInt(skip || '0'), parseInt(limit || '100'));
   }
 
   @Post('songs/:songId/approve')

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 import { useAddToPlaylist } from './AddToPlaylistDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -17,6 +18,9 @@ type Song = {
 
 type AlbumCardProps = {
   song: Song;
+  queue?: Song[];
+  showDuration?: boolean;
+  formatDuration?: (sec: number) => string;
 };
 
 function albumHref(song: Song) {
@@ -28,23 +32,24 @@ function albumHref(song: Song) {
   return `/album?songId=${song._id}`;
 }
 
-export function AlbumCard({ song }: AlbumCardProps) {
+export function AlbumCard({ song, queue, showDuration, formatDuration }: AlbumCardProps) {
   const { play, currentSong, isPlaying } = usePlayer();
   const addToPlaylist = useAddToPlaylist();
   const { user } = useAuth();
   const isCurrent = currentSong?._id === song._id;
-  const image = song.coverImage || '/placeholder.svg';
+  const image = getCoverImageUrl(song.coverImage, song._id || song.title);
 
   return (
     <Link
       href={albumHref(song)}
-      className="group block p-4 rounded-lg bg-musify-card hover:bg-musify-card-hover transition cursor-pointer"
+      className="album-card-premium group block p-3 cursor-pointer"
     >
-      <div className="relative aspect-square rounded-lg overflow-hidden mb-3 bg-white/5">
+      <div className="relative aspect-square min-h-[140px] rounded-xl overflow-hidden mb-2 bg-[#2a2a2e] shadow-xl">
         <img
           src={image}
           alt={song.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
         />
         {addToPlaylist && user && (
           <button
@@ -70,9 +75,9 @@ export function AlbumCard({ song }: AlbumCardProps) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              play(song);
+              play(song, queue);
             }}
-            className="w-14 h-14 rounded-full bg-musify-accent flex items-center justify-center shadow-lg shadow-cyan-500/40 hover:scale-110 transition cursor-pointer"
+            className="play-btn-glow w-14 h-14 rounded-full bg-gradient-to-r from-[#00d4ff] to-[#00bfff] flex items-center justify-center hover:scale-110 transition-all duration-200 cursor-pointer"
           >
             {isCurrent && isPlaying ? (
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -86,8 +91,10 @@ export function AlbumCard({ song }: AlbumCardProps) {
           </div>
         </div>
       </div>
-      <h3 className="font-semibold text-white truncate">{song.title}</h3>
-      <p className="text-sm text-white/60 truncate mt-0.5">{song.artist}</p>
+      <h3 className="font-bold text-white truncate text-[15px] leading-tight">{song.title}</h3>
+      <p className="text-[13px] text-white/60 truncate mt-0.5">
+        {song.artist}{showDuration && formatDuration ? ` · ${formatDuration(song.duration)}` : ''}
+      </p>
     </Link>
   );
 }

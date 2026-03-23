@@ -23,15 +23,8 @@ export function TopHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-musify-dark/95 backdrop-blur-md px-6 py-4 flex items-center gap-6 border-b border-white/5">
-      <Link href="/" className="flex items-center gap-2 shrink-0">
-        <img src="/musify-logo.png" alt="Musify" className="w-9 h-9 object-contain" />
-        <span className="text-xl font-bold bg-gradient-to-r from-musify-teal to-musify-purple bg-clip-text text-transparent">
-          Musify
-        </span>
-      </Link>
-
-      <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl mx-auto">
+    <header className="sticky top-0 z-20 bg-gradient-to-b from-[#0d0d0d] via-[#0d0d0d] to-[#0d0d0d]/80 backdrop-blur-xl px-6 py-4 flex items-center gap-6 shadow-[0_1px_0_0_rgba(255,255,255,0.03),0_4px_12px_-2px_rgba(0,212,255,0.05)]">
+      <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md">
         <div className="relative">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
@@ -41,7 +34,7 @@ export function TopHeader() {
             placeholder="Search songs, artists, albums..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-12 py-2.5 rounded-xl bg-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-musify-teal/50 border border-transparent"
+            className="w-full pl-12 pr-12 py-2.5 rounded-xl bg-white/10 text-[15px] text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#00d4ff]/40 focus:border-[#00d4ff]/30 border border-transparent"
             aria-label="Search"
           />
           {searchQuery ? (
@@ -61,7 +54,7 @@ export function TopHeader() {
         </div>
       </form>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 ml-auto">
         <Link href="/favorites" className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition">
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -73,14 +66,14 @@ export function TopHeader() {
           </svg>
         </button>
         {user ? (
-          <Link href="/profile" className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-white/5 transition">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-musify-teal to-musify-purple flex items-center justify-center text-white font-bold text-sm">
+          <Link href={user.role === 'SINGER' ? '/singer-dashboard?nav=profile' : '/profile'} className="flex items-center gap-2 p-1.5 pr-3 rounded-full hover:bg-white/10 transition">
+            <div className="w-8 h-8 rounded-full bg-[#535353] flex items-center justify-center text-white font-bold text-sm">
               {user.name?.[0]?.toUpperCase() || 'U'}
             </div>
           </Link>
         ) : (
-          <Link href="/login" className="px-4 py-2 rounded-xl bg-musify-teal hover:bg-musify-accent-hover text-white text-sm font-medium transition">
-            Login
+          <Link href="/login" className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00d4ff] to-[#00bfff] text-black text-sm font-bold hover:opacity-90 hover:scale-105 transition shadow-lg shadow-[#00d4ff]/20">
+            Log in
           </Link>
         )}
       </div>
