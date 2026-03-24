@@ -11,6 +11,9 @@ pipeline {
 
   parameters {
     string(name: 'DOCKER_REGISTRY', defaultValue: 'hamzabkr', description: 'Docker registry namespace (Docker Hub user/org or full registry namespace)')
+    booleanParam(name: 'DEPLOY_TO_STAGING', defaultValue: true, description: 'Déployer sur le serveur staging après push (nécessite STAGING_SSH_TARGET + credential staging-ssh-key)')
+    string(name: 'STAGING_SSH_TARGET', defaultValue: '', description: 'Cible SSH user@hôte (ex: ubuntu@staging.example.com). Vide = étape ignorée.')
+    string(name: 'STAGING_REMOTE_DIR', defaultValue: 'musify-staging', description: 'Répertoire distant sous $HOME pour docker compose staging')
   }
 
   options {
@@ -147,6 +150,33 @@ pipeline {
             }
             sh "docker push ${imageBackend}"
             sh "docker push ${imageFrontend}"
+          }
+        }
+      }
+    }
+
+    stage('Deploy Staging') {
+      when {
+        allOf {
+          expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+          expression { params.DEPLOY_TO_STAGING }
+          expression { params.STAGING_SSH_TARGET != null && params.STAGING_SSH_TARGET.trim().length() > 0 }
+          expression { env.DOCKER_REGISTRY != null && env.DOCKER_REGISTRY.trim().length() > 0 }
+        }
+      }
+      steps {
+        sshagent(credentials: ['staging-ssh-key']) {
+          script {
+            def reg = env.DOCKER_REGISTRY.trim()
+            def tag = env.BUILD_NUMBER ?: 'latest'
+            def target = params.STAGING_SSH_TARGET.trim()
+            def remoteDir = params.STAGING_REMOTE_DIR?.trim() ?: 'musify-staging'
+            sh """
+              ssh -o StrictHostKeyChecking=accept-new ${target} 'mkdir -p ~/${remoteDir}'
+              scp -o StrictHostKeyChecking=accept-new docker-compose.staging.yml ${target}:~/${remoteDir}/docker-compose.staging.yml
+              ssh -o StrictHostKeyChecking=accept-new ${target} \\
+                "cd ~/${remoteDir} && REGISTRY=${reg} IMAGE_TAG=${tag} docker compose -f docker-compose.staging.yml pull && REGISTRY=${reg} IMAGE_TAG=${tag} docker compose -f docker-compose.staging.yml up -d --remove-orphans"
+            """
           }
         }
       }
