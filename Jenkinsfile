@@ -10,7 +10,7 @@ pipeline {
   }
 
   parameters {
-    string(name: 'DOCKER_REGISTRY', defaultValue: 'hamzaelboukri', description: 'Docker registry namespace (Docker Hub user/org or full registry namespace)')
+    string(name: 'DOCKER_REGISTRY', defaultValue: 'hamzabkr', description: 'Docker registry namespace (Docker Hub user/org or full registry namespace)')
   }
 
   options {
