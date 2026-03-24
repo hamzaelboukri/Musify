@@ -9,7 +9,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Musify - Music Streaming',
-  description: 'Stream your favorite music',
+  description: 'Stream your favorite music, anytime.',
   icons: { icon: '/musify-logo.png' },
 };
 
