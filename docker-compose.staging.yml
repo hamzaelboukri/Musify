@@ -1,5 +1,6 @@
 # Staging: images pré-construites depuis le registry (REGISTRY + IMAGE_TAG requis).
 # Exemple: REGISTRY=hamzabkr IMAGE_TAG=12 docker compose -f docker-compose.staging.yml up -d
+# Ports: frontend 3000, backend 3001 (ajuster si besoin sur le serveur).
 services:
   mongodb:
     image: mongo:7
