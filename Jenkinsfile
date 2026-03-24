@@ -9,6 +9,10 @@ pipeline {
     NODE_OPTIONS = '--max-old-space-size=4096'
   }
 
+  parameters {
+    string(name: 'DOCKER_REGISTRY', defaultValue: 'hamzaelboukri', description: 'Docker registry namespace (Docker Hub user/org or full registry namespace)')
+  }
+
   options {
     skipDefaultCheckout()
     buildDiscarder(logRotator(numToKeepStr: '10'))
