@@ -55,7 +55,7 @@ export default function HowItWorksPage() {
         <div className="relative text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">How Musify works</h1>
           <p className="text-white/70 mt-2 text-lg max-w-2xl mx-auto">
-            A quick guide to get the most out of the app
+            A quick guide to get the most out of Musify
           </p>
         </div>
       </div>
