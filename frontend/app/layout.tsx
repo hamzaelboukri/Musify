@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PlayerProvider } from '@/contexts/PlayerContext';
 import { SearchProvider } from '@/contexts/SearchContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AddToPlaylistProvider } from '@/components/AddToPlaylistDialog';
 import { AppShell } from '@/components/AppShell';
 import './globals.css';
@@ -21,24 +20,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('musify-theme');var d=document.documentElement;d.setAttribute('data-theme',t==='light'?'light':'dark');d.classList.toggle('dark',t!=='light');})();`,
-          }}
-        />
       </head>
       <body className="min-h-screen bg-[var(--background)]">
-        <ThemeProvider>
-          <AuthProvider>
-            <PlayerProvider>
-              <SearchProvider>
-                <AddToPlaylistProvider>
-                  <AppShell>{children}</AppShell>
-                </AddToPlaylistProvider>
-              </SearchProvider>
-            </PlayerProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <PlayerProvider>
+            <SearchProvider>
+              <AddToPlaylistProvider>
+                <AppShell>{children}</AppShell>
+              </AddToPlaylistProvider>
+            </SearchProvider>
+          </PlayerProvider>
+        </AuthProvider>
       </body>
     </html>
   );

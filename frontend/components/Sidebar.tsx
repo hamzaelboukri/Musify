@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogoutIcon } from '@/components/icons';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -44,10 +43,6 @@ export function Sidebar() {
         })}
 
         <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition">
-            <ThemeToggle />
-            <span className="font-medium text-[14px]">Theme</span>
-          </div>
           <Link
             href="/playlists"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#b3b3b3] hover:text-white hover:bg-white/5 transition"

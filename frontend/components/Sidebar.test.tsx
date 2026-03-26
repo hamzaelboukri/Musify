@@ -14,7 +14,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => mockUseAuth() }));
 
 vi.mock('@/components/icons', () => ({ LogoutIcon: ({ className }: { className?: string }) => <span data-testid="logout-icon" className={className} /> }));
-vi.mock('@/components/ThemeToggle', () => ({ ThemeToggle: () => <div data-testid="theme-toggle">Theme</div> }));
 
 describe('Sidebar', () => {
   beforeEach(() => {
