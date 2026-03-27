@@ -5,6 +5,11 @@ node_modules/
 dist/
 .next/
 out/
+coverage/
+
+# Uploads
+backend/uploads/
+uploads/
 
 # Environment
 .env

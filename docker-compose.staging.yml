@@ -1,0 +1,59 @@
+# Staging: images pré-construites depuis le registry (REGISTRY + IMAGE_TAG requis).
+# Staging: images pré-construites depuis le registry (REGISTRY + IMAGE_TAG requis).
+# Staging: images pré-construites depuis le registry (REGISTRY + IMAGE_TAG requis).
+
+
+# Ports: frontend 3000, backend 3001 (ajuster si besoin sur le serveur).
+# Staging: images pré-construites depuis le registry (REGISTRY + IMAGE_TAG requis).
+# Staging: images pré-construites depuis le registry (REGISTRY + IMAGE_TAG requis).
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: musify-staging-mongodb
+    volumes:
+      - musify-staging-mongo-data:/data/db
+    restart: unless-stopped
+    networks:
+      - staging
+
+  backend:
+    image: ${REGISTRY}/musify-backend:${IMAGE_TAG}
+    container_name: musify-staging-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - musify-staging-uploads:/app/uploads
+    environment:
+      PORT: "3001"
+      MONGODB_URI: mongodb://mongodb:27017/musify
+      JWT_SECRET: ${JWT_SECRET:-staging-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-staging-change-me-refresh}
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_EXPIRES_IN: 7d
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - staging
+
+  frontend:
+    image: ${REGISTRY}/musify-frontend:${IMAGE_TAG}
+    container_name: musify-staging-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - staging
+
+volumes:
+  musify-staging-mongo-data:
+  musify-staging-uploads:
+
+networks:
+  staging:
+    name: musify-staging

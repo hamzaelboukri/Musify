@@ -13,6 +13,8 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { StreamingModule } from './streaming/streaming.module';
 import { StatsModule } from './stats/stats.module';
+import { UploadModule } from './upload/upload.module';
+import { AlbumsModule } from './albums/albums.module';
 
 @Module({
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
@@ -29,6 +31,8 @@ import { StatsModule } from './stats/stats.module';
     SessionsModule,
     StreamingModule,
     StatsModule,
+    UploadModule,
+    AlbumsModule,
   ],
 })
 export class AppModule {}

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { songService } from '@/services/songService';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { getCoverImageUrl } from '@/utils/coverImage';
 import { BackIcon, PlayIcon, AddIcon, MoreVerticalIcon, ClockIcon } from '@/components/icons';
 
 type Song = {
@@ -72,7 +73,7 @@ export default function AlbumPage() {
 
   const displayAlbum = album || (songs[0]?.album) || (songs[0] ? 'Single' : '');
   const displayArtist = artist || songs[0]?.artist || '';
-  const coverImage = songs[0]?.coverImage || '/placeholder.svg';
+  const coverImage = getCoverImageUrl(songs[0]?.coverImage, songs[0]?._id || album || 'album');
   const releaseYear = songs[0]?.createdAt ? new Date(songs[0].createdAt).getFullYear() : '';
 
   const handlePlay = () => {
@@ -116,7 +117,7 @@ export default function AlbumPage() {
           </svg>
         </div>
         <p className="text-xl font-medium text-white/80">No tracks found</p>
-        <p className="text-white/50 text-sm max-w-sm text-center">This album might not exist or has been removed.</p>
+        <p className="text-white/50 text-[13px] max-w-sm text-center">This album might not exist or has been removed.</p>
         <Link
           href="/"
           className="px-6 py-3 rounded-full bg-musify-teal hover:bg-musify-accent-hover text-white font-semibold transition"
@@ -156,6 +157,7 @@ export default function AlbumPage() {
                 src={coverImage}
                 alt={displayAlbum}
                 className="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-2xl object-cover shadow-2xl shadow-black/50 ring-2 ring-white/10"
+                onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, songs[0]?._id || album || 'album'); }}
               />
             </div>
 
@@ -247,18 +249,19 @@ export default function AlbumPage() {
                 </span>
                 <div className="flex items-center gap-4 min-w-0">
                   <img
-                    src={song.coverImage || coverImage || '/placeholder.svg'}
+                    src={getCoverImageUrl(song.coverImage || songs[0]?.coverImage, song._id || song.title)}
                     alt=""
-                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0 hidden sm:block"
+                    className="w-11 h-11 rounded-lg object-cover flex-shrink-0 hidden sm:block"
+                    onError={(e) => { (e.target as HTMLImageElement).src = getCoverImageUrl(undefined, song._id || song.title); }}
                   />
                   <div className="min-w-0">
-                    <p className={`font-medium truncate ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>
+                    <p className={`font-medium truncate text-[14px] ${isCurrent ? 'text-musify-teal' : 'text-white'}`}>
                       {song.title}
                     </p>
-                    <p className="text-white/50 text-sm truncate">{song.artist}</p>
+                    <p className="text-white/50 text-[13px] truncate">{song.artist}</p>
                   </div>
                 </div>
-                <span className="flex items-center justify-end text-white/50 text-sm">
+                <span className="flex items-center justify-end text-white/50 text-[13px]">
                   {formatDuration(song.duration)}
                 </span>
               </div>

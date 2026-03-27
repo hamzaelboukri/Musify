@@ -28,8 +28,8 @@ export class AdminService {
     return this.usersService.findAll(skip, limit);
   }
 
-  async banUser(userId: string) {
-    return this.usersService.banUser(userId);
+  async banUser(userId: string, currentUserId?: string) {
+    return this.usersService.banUser(userId, currentUserId);
   }
 
   async unbanUser(userId: string) {
@@ -50,6 +50,16 @@ export class AdminService {
 
   async getPendingSongs() {
     return this.songsService.getPendingApproval();
+  }
+
+  async getAllSongs(skip = 0, limit = 100) {
+    return this.songModel
+      .find()
+      .populate('singerId', 'stageName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
   }
 
   async approveSong(songId: string) {
